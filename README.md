@@ -1,4 +1,4 @@
-# Go Starter CLI - Restructured Project
+# HexaGo Starter CLI - Restructured Project
 
 A powerful CLI tool for generating flexible Go projects with hexagonal architecture, featuring customizable models, repositories, services, and handlers.
 
@@ -229,8 +229,7 @@ go-starter generate user-service \
 
 ```
 your-project/
-├── cmd/server/              # Application entrypoint
-│   └── main.go
+|--  main.go                 # Application entrypoint
 ├── configs/                 # Configuration files
 │   └── config.yaml
 ├── locales/                 # Internationalization
