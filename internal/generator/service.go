@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/erwinhermantodev/go-starter-cli/internal/config"
-	"github.com/erwinhermantodev/go-starter-cli/internal/templates"
+	"github.com/erwinhermantodev/hexa-go/internal/config"
+	"github.com/erwinhermantodev/hexa-go/internal/templates"
 )
 
 // GenerateServiceFile generates a standalone service file

@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/erwinhermantodev/go-starter-cli/internal/config"
-	"github.com/erwinhermantodev/go-starter-cli/internal/utils"
+	"github.com/erwinhermantodev/hexa-go/internal/config"
+	"github.com/erwinhermantodev/hexa-go/internal/utils"
 )
 
 // PromptForInput prompts user for input with given message

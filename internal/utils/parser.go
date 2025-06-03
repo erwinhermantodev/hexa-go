@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/erwinhermantodev/go-starter-cli/internal/config"
+	"github.com/erwinhermantodev/hexa-go/internal/config"
 )
 
 // ParseFieldInput parses a field input string into FieldConfig

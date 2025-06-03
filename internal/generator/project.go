@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/erwinhermantodev/go-starter-cli/internal/config"
-	"github.com/erwinhermantodev/go-starter-cli/internal/templates"
+	"github.com/erwinhermantodev/hexa-go/internal/config"
+	"github.com/erwinhermantodev/hexa-go/internal/templates"
 )
 
 // CreateProject creates the entire project structure

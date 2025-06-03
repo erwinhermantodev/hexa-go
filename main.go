@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/erwinhermantodev/go-starter-cli/cmd"
+	"github.com/erwinhermantodev/hexa-go/cmd"
 )
 
 func main() {

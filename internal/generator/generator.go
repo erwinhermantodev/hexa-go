@@ -6,7 +6,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/erwinhermantodev/go-starter-cli/internal/config"
+	"github.com/erwinhermantodev/hexa-go/internal/config"
 )
 
 // Generator handles code generation

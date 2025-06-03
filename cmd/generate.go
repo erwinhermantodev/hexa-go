@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/erwinhermantodev/go-starter-cli/internal/config"
-	"github.com/erwinhermantodev/go-starter-cli/internal/generator"
-	"github.com/erwinhermantodev/go-starter-cli/internal/prompts"
+	"github.com/erwinhermantodev/hexa-go/internal/config"
+	"github.com/erwinhermantodev/hexa-go/internal/generator"
+	"github.com/erwinhermantodev/hexa-go/internal/prompts"
 	"github.com/spf13/cobra"
 )
 

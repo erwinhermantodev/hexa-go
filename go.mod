@@ -1,4 +1,4 @@
-module github.com/erwinhermantodev/go-starter-cli
+module github.com/erwinhermantodev/hexa-go
 
 go 1.23.4
 
