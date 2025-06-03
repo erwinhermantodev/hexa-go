@@ -59,26 +59,26 @@ git clone https://github.com/erwinhermantodev/hexa-go
 cd hexa-go
 
 # Build the CLI
-go build -o go-starter main.go
+go build -o hexa-go main.go
 
 # Make it globally available (optional)
-sudo mv go-starter /usr/local/bin/
+sudo mv hexa-go /usr/local/bin/
 ```
 
 ### Generate a New Project
 
 ```bash
 # Interactive mode (recommended for first-time users)
-go-starter generate my-awesome-api --interactive
+hexa-go generate my-awesome-api --interactive
 
 # Quick generation with flags
-go-starter generate my-api \
+hexa-go generate my-api \
   --module "github.com/erwinhermantodev/my-api" \
   --author "Your Name" \
   --description "My awesome API project"
 
 # Minimal project (no authentication)
-go-starter generate simple-api --minimal
+hexa-go generate simple-api --minimal
 ```
 
 ### Add Components to Existing Project
@@ -88,20 +88,20 @@ go-starter generate simple-api --minimal
 cd my-api
 
 # Add a new model with full CRUD
-go-starter add model Product \
+hexa-go add model Product \
   -f "Name:string::required,min=2" \
   -f "Price:float64::required,gt=0" \
   -f "Category:string::required" \
   -f "Description:string"
 
 # Add model without repository
-go-starter add model Category --no-repo
+hexa-go add model Category --no-repo
 
 # Add standalone service
-go-starter add service PaymentProcessor
+hexa-go add service PaymentProcessor
 
 # Add standalone handler
-go-starter add handler HealthCheck
+hexa-go add handler HealthCheck
 ```
 
 ## 📖 Usage Examples
@@ -110,7 +110,7 @@ go-starter add handler HealthCheck
 
 ```bash
 # Generate the base project
-go-starter generate ecommerce-api \
+hexa-go generate ecommerce-api \
   --module "github.com/mycompany/ecommerce-api" \
   --author "Development Team" \
   --description "E-commerce REST API with authentication"
@@ -118,7 +118,7 @@ go-starter generate ecommerce-api \
 cd ecommerce-api
 
 # Add Product model
-go-starter add model Product \
+hexa-go add model Product \
   -f "Name:string::required,min=2,max=100" \
   -f "SKU:string::required,unique" \
   -f "Price:float64::required,gt=0" \
@@ -127,37 +127,37 @@ go-starter add model Product \
   -f "Description:string"
 
 # Add Category model
-go-starter add model Category \
+hexa-go add model Category \
   -f "Name:string::required,min=2,max=50" \
   -f "Slug:string::required,unique" \
   -f "Description:string"
 
 # Add Order model
-go-starter add model Order \
+hexa-go add model Order \
   -f "UserID:uint::required" \
   -f "TotalAmount:float64::required,gt=0" \
   -f "Status:string::required" \
   -f "ShippingAddress:string::required"
 
 # Add payment service
-go-starter add service Payment
+hexa-go add service Payment
 
 # Add analytics handler
-go-starter add handler Analytics
+hexa-go add handler Analytics
 ```
 
 ### Example 2: Blog API
 
 ```bash
 # Generate minimal blog API
-go-starter generate blog-api --minimal \
+hexa-go generate blog-api --minimal \
   --module "github.com/myblog/api" \
   --author "Blog Team"
 
 cd blog-api
 
 # Add Post model
-go-starter add model Post \
+hexa-go add model Post \
   -f "Title:string::required,min=5,max=200" \
   -f "Slug:string::required,unique" \
   -f "Content:string::required,min=10" \
@@ -166,7 +166,7 @@ go-starter add model Post \
   -f "PublishedAt:*time.Time"
 
 # Add Comment model
-go-starter add model Comment \
+hexa-go add model Comment \
   -f "PostID:uint::required" \
   -f "AuthorName:string::required,min=2,max=50" \
   -f "AuthorEmail:string::required,email" \
@@ -174,14 +174,14 @@ go-starter add model Comment \
   -f "Approved:bool::default=false"
 
 # Add search service
-go-starter add service Search
+hexa-go add service Search
 ```
 
 ### Example 3: Microservice
 
 ```bash
 # Generate microservice with custom components
-go-starter generate user-service \
+hexa-go generate user-service \
   --module "github.com/company/user-service" \
   --interactive
 
@@ -280,7 +280,7 @@ your-project/
 ### 1. Initial Setup
 ```bash
 # Generate project
-go-starter generate my-project --interactive
+hexa-go generate my-project --interactive
 
 cd my-project
 go mod tidy
@@ -289,24 +289,24 @@ go mod tidy
 ### 2. Add Models Incrementally
 ```bash
 # Add core models first
-go-starter add model User -f "Name:string::required" -f "Email:string::required,email"
+hexa-go add model User -f "Name:string::required" -f "Email:string::required,email"
 
 # Add related models
-go-starter add model Profile -f "UserID:uint::required" -f "Bio:string"
+hexa-go add model Profile -f "UserID:uint::required" -f "Bio:string"
 ```
 
 ### 3. Add Business Logic
 ```bash
 # Add services for complex business logic
-go-starter add service NotificationService
-go-starter add service AnalyticsService
+hexa-go add service NotificationService
+hexa-go add service AnalyticsService
 ```
 
 ### 4. Add Custom Handlers
 ```bash
 # Add specialized handlers
-go-starter add handler ReportHandler
-go-starter add handler WebhookHandler
+hexa-go add handler ReportHandler
+hexa-go add handler WebhookHandler
 ```
 
 ### 5. Run and Test
