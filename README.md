@@ -312,7 +312,7 @@ go-starter add handler WebhookHandler
 ### 5. Run and Test
 ```bash
 # Run the application
-go run cmd/server/main.go
+go run main.go
 
 # Or use Docker
 docker-compose up -d
