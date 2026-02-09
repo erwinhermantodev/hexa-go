@@ -10,5 +10,5 @@ var addCmd = &cobra.Command{
 }
 
 func init() {
-	addCmd.AddCommand(addModelCmd, addServiceCmd, addHandlerCmd)
+	addCmd.AddCommand(addModelCmd, addServiceCmd, addHandlerCmd, addModuleCmd)
 }

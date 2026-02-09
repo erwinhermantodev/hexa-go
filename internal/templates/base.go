@@ -10,11 +10,18 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	github.com/go-playground/validator/v10 v10.15.1
-	golang.org/x/crypto v0.12.0
-	gorm.io/gorm v1.25.4
-	gorm.io/driver/postgres v1.5.2
-	google.golang.org/grpc v1.57.0
-	google.golang.org/protobuf v1.31.0
+	github.com/rs/zerolog v1.31.0
+	github.com/swaggo/echo-swagger v1.4.1
+	github.com/swaggo/swag v1.16.2
+	golang.org/x/crypto v0.31.0
+	gorm.io/gorm v1.25.12
+	gorm.io/driver/postgres v1.5.11
+	gorm.io/driver/mysql v1.5.2
+	gorm.io/driver/sqlite v1.5.4
+	github.com/stretchr/testify v1.8.4
+	google.golang.org/grpc v1.64.0
+	google.golang.org/protobuf v1.34.1
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240513163218-0867130af1f8
 )`
 
 // ReadmeTemplate is the template for README.md file
@@ -177,7 +184,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o main main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main main.go
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata
@@ -355,7 +362,12 @@ migrate-up:
 migrate-down:
 	migrate -path migrations -database "postgres://postgres:postgres@localhost:5432/{{.Name}}?sslmode=disable" down
 
+# Generate Swagger documentation
+swag-init:
+	swag init -g main.go
+
 # Development
-dev:
+swag-dev:
+	swag init -g main.go
 	air
 `

@@ -1,0 +1,14 @@
+package routes
+
+import (
+	"github.com/labstack/echo/v4"
+)
+
+type Router struct {
+	// [HANDLER-FIELDS-EXPORTED]
+}
+
+func SetupRoutes(e *echo.Group, r *Router) {
+	api := e.Group("/api/v1")
+	// [ROUTES-INIT]
+}

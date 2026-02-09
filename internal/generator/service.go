@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -16,8 +17,15 @@ func (g *Generator) GenerateServiceFile(projectConfig config.ProjectConfig, serv
 	}
 
 	servicePath := filepath.Join(baseDir, "service", strings.ToLower(serviceName)+".go")
-	return g.CreateFileFromTemplate(servicePath, templates.CustomServiceTemplate, map[string]interface{}{
+	if err := g.CreateFileFromTemplate(servicePath, templates.CustomServiceTemplate, map[string]interface{}{
 		"Config":      projectConfig,
 		"ServiceName": serviceName,
-	})
+	}); err != nil {
+		return err
+	}
+
+	// Automated Wiring
+	mainPath := filepath.Join(baseDir, "main.go")
+	serviceInit := fmt.Sprintf("%[1]sService := service.New%[2]sService()", strings.ToLower(serviceName), serviceName)
+	return g.InjectCode(mainPath, "// [SERVICES-INIT]", serviceInit)
 }

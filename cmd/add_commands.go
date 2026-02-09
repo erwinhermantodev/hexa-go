@@ -32,11 +32,19 @@ var addHandlerCmd = &cobra.Command{
 	Run:   addHandler,
 }
 
+var addModuleCmd = &cobra.Command{
+	Use:   "module [module-name]",
+	Short: "Add a new module with co-located repository, service, and handler",
+	Args:  cobra.ExactArgs(1),
+	Run:   addModule,
+}
+
 func init() {
 	addModelCmd.Flags().StringSliceP("fields", "f", []string{}, "Model fields (format: name:type:tag:validation)")
 	addModelCmd.Flags().BoolP("no-repo", "", false, "Skip repository generation")
 	addModelCmd.Flags().BoolP("no-service", "", false, "Skip service generation")
 	addModelCmd.Flags().BoolP("no-handler", "", false, "Skip handler generation")
+	addModuleCmd.Flags().StringSliceP("fields", "f", []string{}, "Model fields (format: name:type:tag:validation)")
 }
 
 func addModel(cmd *cobra.Command, args []string) {
@@ -130,4 +138,40 @@ func addHandler(cmd *cobra.Command, args []string) {
 
 	fmt.Printf("✅ Handler '%s' generated successfully!\n", handlerName)
 	fmt.Printf("  🌐 Generated: transport/http/handler/%s_handler.go\n", strings.ToLower(handlerName))
+}
+
+func addModule(cmd *cobra.Command, args []string) {
+	moduleName := args[0]
+	fields, _ := cmd.Flags().GetStringSlice("fields")
+
+	if !utils.FileExists("go.mod") {
+		fmt.Println("❌ No go.mod found. Please run this command in a Go project directory.")
+		return
+	}
+
+	modelConfig := config.ModelConfig{
+		Name:       strings.Title(strings.ToLower(moduleName)),
+		Fields:     utils.ParseFieldsFromFlags(fields),
+		HasRepo:    true,
+		HasService: true,
+		HasHandler: true,
+	}
+
+	if len(modelConfig.Fields) == 0 {
+		modelConfig.Fields = prompts.PromptForModelFields(modelConfig.Name)
+	}
+
+	projectConfig := config.ProjectConfig{
+		ModuleName: utils.GetModuleName(),
+		Models:     []config.ModelConfig{modelConfig},
+	}
+
+	gen := generator.New()
+	if err := gen.GenerateModuleFiles(projectConfig, modelConfig, moduleName); err != nil {
+		fmt.Printf("❌ Error generating module: %v\n", err)
+		return
+	}
+
+	fmt.Printf("✅ Module '%s' generated successfully!\n", moduleName)
+	fmt.Printf("  📁 Generated: internal/modules/%s\n", strings.ToLower(moduleName))
 }

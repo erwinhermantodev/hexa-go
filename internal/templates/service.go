@@ -6,37 +6,61 @@ package templates
 const MainServerTemplate = `package main
 
 import (
+	"context"
 	"fmt"
-	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
 	"{{.ModuleName}}/transport/http/routes"
 	"{{.ModuleName}}/utils"
+	// [IMPORTS]
 )
 
+// @title {{.Name}} API
+// @version 1.0
+// @description {{.Description}}
+// @contact.name {{.Author}}
+// @host localhost:8080
+// @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+
 func main() {
+	// Initialize logger
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+
 	// Load configuration
 	config, err := utils.LoadConfig()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		log.Fatal().Err(err).Msg("Failed to load config")
 	}
 
-	// Connect to database
-	// db, err := connectDB(config)
-	// if err != nil {
-	// 	log.Fatalf("Failed to connect to database: %v", err)
-	// }
+	// Set log level
+	level, err := zerolog.ParseLevel(config.LogLevel)
+	if err != nil {
+		level = zerolog.InfoLevel
+	}
+	zerolog.SetGlobalLevel(level)
 
-	// log.Println(db)
-	// Auto migrate your models here
-	// if err := db.AutoMigrate(&model.User{}, &model.Product{}); err != nil {
-	//     log.Fatalf("Failed to migrate database: %v", err)
-	// }
+	// Connect to database
+	db, err := connectDB(config)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to connect to database (optional)")
+	}
 
 	// Initialize JWT
 	expiry, _ := time.ParseDuration(config.JWTExpiry)
@@ -44,64 +68,96 @@ func main() {
 
 	// Initialize validator
 	validator := utils.NewValidator()
-	log.Println(validator)
-	// Initialize repositories
-	// userRepo := repository.NewUserRepository(db)
-	// productRepo := repository.NewProductRepository(db)
 
-	// Initialize services
-	// userService := service.NewUserService(userRepo)
-	// productService := service.NewProductService(productRepo)
+	// [REPOS-INIT]
 
-	// Initialize handlers
-	// userHandler := handler.NewUserHandler(userService, validator)
-	// productHandler := handler.NewProductHandler(productService, validator)
+	// [SERVICES-INIT]
+
+	// [HANDLERS-INIT]
+	_ = authService
 
 	// Setup Echo
 	e := echo.New()
 
 	// Configure Echo
 	e.HideBanner = true
-	if config.ServerMode == "release" {
-		e.Debug = false
-	} else {
-		e.Debug = true
-	}
+	e.Debug = config.ServerMode != "release"
 
 	// Add middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
-
-	// Add CORS middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 	}))
 
-	// Setup routes
-	routes.SetupRoutes(e, jwt)
+	// Initialize router
+	router := routes.NewRouter(jwt)
+	// [ROUTER-HANDLERS-INIT]
 
-	// Start server
-	log.Printf("Server starting on port %s", config.ServerPort)
-	log.Printf("Health check: http://localhost:%s/api/v1/health", config.ServerPort)
-	
-	if err := e.Start(":" + config.ServerPort); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	// Setup routes
+	router.SetupRoutes(e)
+
+	// Start server in a goroutine
+	go func() {
+		log.Info().Str("port", config.ServerPort).Msg("Server starting")
+		if err := e.Start(":" + config.ServerPort); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("Failed to start server")
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server with a timeout of 10 seconds.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+
+	log.Info().Msg("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := e.Shutdown(ctx); err != nil {
+		log.Fatal().Err(err).Msg("Server forced to shutdown")
 	}
+
+	// Close database connection
+	if db != nil {
+		sqlDB, _ := db.DB()
+		if err := sqlDB.Close(); err != nil {
+			log.Error().Err(err).Msg("Error closing database connection")
+		}
+	}
+
+	log.Info().Msg("Server exited properly")
 }
 
 func connectDB(config *utils.Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Jakarta",
-		config.DatabaseHost,
-		config.DatabaseUser,
-		config.DatabasePassword,
-		config.DatabaseName,
-		config.DatabasePort,
-	)
+	var dialector gorm.Dialector
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	switch config.DatabaseDriver {
+	case "mysql":
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			config.DatabaseUser,
+			config.DatabasePassword,
+			config.DatabaseHost,
+			config.DatabasePort,
+			config.DatabaseName,
+		)
+		dialector = mysql.Open(dsn)
+	case "sqlite":
+		dialector = sqlite.Open(config.DatabaseName + ".db")
+	default: // postgres
+		dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Jakarta",
+			config.DatabaseHost,
+			config.DatabaseUser,
+			config.DatabasePassword,
+			config.DatabaseName,
+			config.DatabasePort,
+		)
+		dialector = postgres.Open(dsn)
+	}
+
+	db, err := gorm.Open(dialector, &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -196,9 +252,26 @@ import (
 	// "github.com/labstack/echo/v4/middleware"
 	// "{{.ModuleName}}/transport/http/handler"
 	"{{.ModuleName}}/utils"
+	echoSwagger "github.com/swaggo/echo-swagger"
+	_ "{{.ModuleName}}/docs"
+	// [IMPORTS]
 )
 
-func SetupRoutes(e *echo.Echo, jwtUtil *utils.JWT) {
+type Router struct {
+	JWT     *utils.JWT
+	// [HANDLER-FIELDS-EXPORTED]
+}
+
+func NewRouter(jwt *utils.JWT) *Router {
+	return &Router{
+		JWT: jwt,
+	}
+}
+
+func (r *Router) SetupRoutes(e *echo.Echo) {
+	// Swagger documentation
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
+
 	api := e.Group("/api/v1")
 	
 	// Health check
@@ -210,10 +283,7 @@ func SetupRoutes(e *echo.Echo, jwtUtil *utils.JWT) {
 		})
 	})
 
-	// Add your routes here
-	// Example for generated models:
-	// setupUserRoutes(api, userHandler, jwtUtil)
-	// setupProductRoutes(api, productHandler, jwtUtil)
+	// [ROUTES-INIT]
 }
 
 // Example route setup for a model
@@ -385,10 +455,6 @@ func (s *{{.Model.Name}}Service) Delete(id uint) error {
 
 // CustomServiceTemplate generates standalone service files
 const CustomServiceTemplate = `package service
-
-import (
-	"{{.Config.ModuleName}}/repository"
-)
 
 type {{.ServiceName}}Service struct {
 	// Add your repository dependencies here

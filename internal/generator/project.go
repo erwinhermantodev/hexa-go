@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/erwinhermantodev/hexa-go/internal/config"
-	"github.com/erwinhermantodev/hexa-go/internal/templates"
 )
 
 // CreateProject creates the entire project structure
@@ -22,6 +21,7 @@ func (g *Generator) CreateProject(projectConfig config.ProjectConfig) error {
 		"transport/http/handler",
 		"transport/http/routes",
 		"utils",
+		"docs",
 	}
 
 	for _, dir := range dirs {
@@ -54,31 +54,24 @@ func (g *Generator) CreateProject(projectConfig config.ProjectConfig) error {
 
 // generateBaseFiles generates all base project files
 func (g *Generator) generateBaseFiles(baseDir string, projectConfig config.ProjectConfig) error {
+	// For now, mapping hardcoded to source paths.
+	// In a full implementation, this would be driven entirely by blueprint.yaml
 	files := map[string]string{
-		"go.mod":                          templates.GoModTemplate,
-		"README.md":                       templates.ReadmeTemplate,
-		"Dockerfile":                      templates.DockerfileTemplate,
-		"docker-compose.yml":              templates.DockerComposeTemplate,
-		".gitignore":                      templates.GitignoreTemplate,
-		".env.example":                    templates.EnvExampleTemplate,
-		"Makefile":                        templates.MakefileTemplate,
-		"locales/en.json":                 templates.LocaleEnTemplate,
-		"locales/id.json":                 templates.LocaleIdTemplate,
-		"repository/interfaces.go":        templates.RepositoryInterfacesTemplate,
-		"transport/http/routes/routes.go": templates.HttpRoutesTemplate,
-		"transport/grpc/server.go":        templates.GrpcServerTemplate,
-		"transport/grpc/run.go":           templates.GrpcRunTemplate,
-		"utils/codes.go":                  templates.UtilsCodesTemplate,
-		"utils/config.go":                 templates.UtilsConfigTemplate,
-		"utils/jwt.go":                    templates.UtilsJwtTemplate,
-		"utils/messages.go":               templates.UtilsMessagesTemplate,
-		"utils/password.go":               templates.UtilsPasswordTemplate,
-		"utils/validator.go":              templates.UtilsValidatorTemplate,
-		"main.go":                         templates.MainServerTemplate,
+		"go.mod":                          "base/go.mod.tmpl",
+		"main.go":                         "base/main.go.tmpl",
+		"README.md":                       "base/README.md.tmpl",          // Need to extract these too
+		"Dockerfile":                      "base/Dockerfile.tmpl",         // Need to extract these too
+		"docker-compose.yml":              "base/docker-compose.yml.tmpl", // Need to extract these too
+		"transport/http/routes/routes.go": "base/routes.go.tmpl",          // Need to extract these too
 	}
 
-	for filePath, tmplContent := range files {
-		if err := g.CreateFileFromTemplate(filepath.Join(baseDir, filePath), tmplContent, projectConfig); err != nil {
+	for filePath, sourcePath := range files {
+		content, err := g.GetTemplateContent("", sourcePath)
+		if err != nil {
+			// fallback if not extracted yet
+			continue
+		}
+		if err := g.CreateFileFromTemplate(filepath.Join(baseDir, filePath), content, projectConfig); err != nil {
 			return err
 		}
 	}

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>hexa-go Docs | Production-Ready Hexagonal Architecture for Go</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #0f172a;
+            --sidebar-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --accent: #818cf8;
+            --code-bg: #1e293b;
+            --surface: #1e293b;
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.6; display: flex; min-height: 100vh; }
+
+        /* Sidebar */
+        aside {
+            width: 300px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1.5rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .logo-container { margin-bottom: 2.5rem; padding-left: 0.5rem; }
+        .logo { font-size: 1.5rem; font-weight: 800; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 0.75rem; }
+        .logo span { color: var(--primary); }
+
+        .nav-group { margin-bottom: 2rem; }
+        .nav-title { text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700; padding-left: 0.5rem; }
+        .nav-item { display: block; color: var(--text-muted); text-decoration: none; padding: 0.5rem 0.75rem; border-radius: 6px; transition: all 0.2s; font-size: 0.9rem; margin-bottom: 2px; }
+        .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .nav-item.active { color: white; background: var(--primary); font-weight: 500; }
+
+        /* Main Content */
+        main { margin-left: 300px; padding: 4rem 5rem; max-width: 1100px; width: 100%; transition: margin 0.3s; }
+
+        section { margin-bottom: 6rem; scroll-margin-top: 2rem; }
+        h1 { font-size: 3.5rem; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.02em; line-height: 1.1; background: linear-gradient(135deg, #fff 0%, #94a3b8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        h2 { font-size: 2.25rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; display: flex; align-items: center; gap: 0.75rem; }
+        h3 { font-size: 1.5rem; font-weight: 600; margin-top: 2.5rem; margin-bottom: 1rem; color: var(--accent); }
+        
+        p { margin-bottom: 1.5rem; color: var(--text-muted); font-size: 1.1rem; max-width: 75ch; }
+
+        /* Components */
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 2.5rem 0; }
+        .feature-card { background: var(--surface); padding: 2rem; border-radius: 16px; border: 1px solid var(--border); transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; }
+        .feature-card:hover { transform: translateY(-4px); border-color: var(--primary); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.5); }
+        .feature-card h4 { font-size: 1.25rem; margin-bottom: 0.75rem; color: white; }
+        .feature-card p { font-size: 0.95rem; margin-bottom: 0; }
+
+        code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.05); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; color: var(--accent); }
+        pre { background: #0b1120; padding: 1.5rem; border-radius: 12px; overflow-x: auto; border: 1px solid var(--border); margin: 1.5rem 0; position: relative; }
+        pre code { padding: 0; background: none; color: #cbd5e1; font-size: 0.9rem; line-height: 1.7; }
+
+        .directory-tree { background: #0f172a; padding: 1.5rem; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #94a3b8; border: 1px solid var(--border); }
+        .tree-folder { color: var(--primary); font-weight: 600; }
+        .tree-file { color: #f8fafc; }
+        .tree-comment { color: #475569; font-style: italic; margin-left: 1rem; }
+
+        table { width: 100%; border-collapse: collapse; margin: 2rem 0; background: var(--surface); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        th, td { padding: 1rem 1.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: rgba(255,255,255,0.03); color: white; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+        tr:last-child td { border-bottom: none; }
+        td code { color: var(--success); }
+
+        .alert { padding: 1.25rem 1.75rem; border-radius: 12px; border-left: 5px solid var(--primary); background: rgba(99, 102, 241, 0.05); margin: 2rem 0; color: #cbd5e1; position: relative; }
+        .alert strong { color: white; display: block; margin-bottom: 0.25rem; }
+
+        .diff { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+        .diff-add { color: #4ade80; }
+        .diff-remove { color: #f87171; }
+
+        footer { margin-top: 8rem; padding: 4rem 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+
+        /* Responsive */
+        @media (max-width: 1024px) { main { padding: 3rem; } }
+        @media (max-width: 768px) { aside { display: none; } main { margin-left: 0; padding: 2rem; } h1 { font-size: 2.5rem; } }
+    </style>
+</head>
+<body>
+    <aside>
+        <div class="logo-container">
+            <a href="#" class="logo">hexa<span>-go</span></a>
+        </div>
+        
+        <div class="nav-group">
+            <div class="nav-title">Introduction</div>
+            <a href="#welcome" class="nav-item">Welcome</a>
+            <a href="#getting-started" class="nav-item">Quick Start</a>
+            <a href="#structure" class="nav-item">Directory Structure</a>
+            <a href="#architecture" class="nav-item">Hexagonal Pattern</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">CLI Reference</div>
+            <a href="#cli-commands" class="nav-item">Command Palette</a>
+            <a href="#modular-generation" class="nav-item">Modular CRUD</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Generic Framework</div>
+            <a href="#ast-injection" class="nav-item">Surgical AST Injection</a>
+            <a href="#blueprint-system" class="nav-item">Blueprint & Templates</a>
+            <a href="#core-sdk" class="nav-item">Core SDK Abstractions</a>
+            <a href="#hooks-plugins" class="nav-item">Hooks & Plugins</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Technical Deep Dive</div>
+            <a href="#wiring" class="nav-item">Dependency Injection</a>
+            <a href="#config-ref" class="nav-item">Configuration Master</a>
+            <a href="#database" class="nav-item">Database Drivers</a>
+        </div>
+    </aside>
+
+    <main>
+        <section id="welcome">
+            <h1>The Generic Go Microservice Engine</h1>
+            <p><strong>hexa-go</strong> is no longer just a boilerplate—it's an extensible framework. Optimized for Hexagonal Architecture, it now features surgical AST manipulation, swappable core libraries, and a dynamic blueprint system.</p>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>Surgical AST Wiring</h4>
+                    <p>Uses Go's Abstract Syntax Tree to inject code without string markers, ensuring 100% reliable modifications.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Library Agnostic</h4>
+                    <p>Abstractions for Logger, DB, and Transport. Swap Echo for Gin or GORM for sqlc with zero logic changes.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Blueprint Driven</h4>
+                    <p>Templates are external and configurable. Define your own architecture patterns via YAML.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="ast-injection">
+            <h2>Surgical AST Injection</h2>
+            <p>Forget fragile string replacements. hexa-go parses your source code into an <strong>Abstract Syntax Tree</strong> to perform surgical modifications at the node level.</p>
+            
+            <h3>How it Works</h3>
+            <p>The CLI locates specific markers (which are now comment nodes in the AST) and inserts new nodes (struct fields, imports, statements) relative to them.</p>
+            <pre><code>// internal/utils/ast_utils.go
+func AddStructField(filePath, structName, fieldName, fieldType, tag string) error {
+    fset := token.NewFileSet()
+    f, _ := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+    
+    ast.Inspect(f, func(n ast.Node) bool {
+        ts, ok := n.(*ast.TypeSpec)
+        if !ok || ts.Name.Name != structName { return true }
+        st, _ := ts.Type.(*ast.StructType)
+        
+        // Surgical Insert
+        newField := &ast.Field{
+            Names: []*ast.Ident{ast.NewIdent(fieldName)},
+            Type:  ast.NewIdent(fieldType),
+        }
+        st.Fields.List = append(st.Fields.List, newField)
+        return false
+    })
+    return saveAST(filePath, fset, f)
+}</code></pre>
+            <div class="alert">
+                <strong>Intelligence:</strong> The AST engine automatically handles import deduplication and preserves your code's formatting and comments.
+            </div>
+        </section>
+
+        <section id="blueprint-system">
+            <h2>Blueprint System</h2>
+            <p>The entire generation logic is now driven by a dynamic <strong>Blueprint</strong>. This separates the "What to build" from the "How to build".</p>
+            
+            <h3>Schema Definition</h3>
+            <p>Define your project structure in <code>blueprint.yaml</code>. Map templates to target paths and use dynamic placeholders.</p>
+            <pre><code># templates/blueprint.yaml
+name: "Standard Hexagonal"
+version: "1.0.0"
+templates:
+  - name: "module_model"
+    source: "modules/model.go.tmpl"
+    target: "internal/modules/{{.PackageName}}/model.go"
+  - name: "core_repository"
+    source: "core/repository.go.tmpl"
+    target: "repository/{{.ToLower .Name}}.go"
+
+pre_generate:
+  - "echo 'Starting generation...'"
+post_generate:
+  - "go mod tidy"</code></pre>
+            <div class="alert">
+                <strong>External Overrides:</strong> Simply place a <code>templates/</code> folder in your current directory to override the embedded defaults.
+            </div>
+        </section>
+
+        <section id="core-sdk">
+            <h2>Core SDK Abstractions</h2>
+            <p>Stop being locked into specific libraries. hexa-go uses <strong>Generic Interfaces</strong> for all core infrastructure components.</p>
+            
+            <h3>Transport Abstraction (Echo/Gin)</h3>
+            <pre><code>// internal/pkg/interfaces/transport.go
+type Context interface {
+    Bind(i interface{}) error
+    JSON(code int, i interface{}) error
+    Param(name string) string
+}
+
+// Your business logic only knows about the interface!
+func (h *Handler) Create(c interfaces.Context) error { ... }</code></pre>
+
+            <h3>Database Abstraction (GORM/SQLC)</h3>
+            <pre><code>// internal/pkg/interfaces/database.go
+type Database interface {
+    Create(ctx context.Context, value interface{}) error
+    Find(ctx context.Context, dest interface{}, conds ...interface{}) error
+}</code></pre>
+            <div class="alert">
+                <strong>Swappable:</strong> Switch from <strong>Echo</strong> to <strong>Gin</strong> just by providing a different wrapper implementation. No changes needed in your <code>modules/</code>.
+            </div>
+        </section>
+
+        <section id="hooks-plugins">
+            <h2>Hooks & Plugins</h2>
+            <p>Extend the framework's lifecycle with custom logic.</p>
+            <h3>Generation Hooks</h3>
+            <ul>
+                <li><strong>Pre-Generate</strong>: Run linter, check environment, or pre-fetch dependencies.</li>
+                <li><strong>Post-Generate</strong>: Format code, run migrations, or notify webhooks.</li>
+            </ul>
+            <h3>Go Plugins</h3>
+            <p>Drop a <code>.go</code> file into the <code>plugins/</code> directory. Hexa-Go will automatically discover and execute it during generation.</p>
+        </section>
+
+        <section id="getting-started">
+            <h2>Getting Started</h2>
+            <p>Launch your production project in three commands.</p>
+            <pre><code># 1. Install CLI
+go install github.com/erwinhermantodev/hexa-go@latest
+
+# 2. Generate Project
+hexa-go generate my-app --module github.com/user/my-app
+
+# 3. Initialize & Run
+cd my-app && go mod tidy && go run main.go</code></pre>
+        </section>
+
+        <section id="structure">
+            <h2>Directory Structure</h2>
+            <p>The refined layout of a Generic Hexa-Go project.</p>
+            <div class="directory-tree">
+                <div>├── <span class="tree-folder">internal/</span></div>
+                <div>│   ├── <span class="tree-folder">pkg/</span> <span class="tree-comment">// Core SDK Abstractions</span></div>
+                <div>│   │   ├── <span class="tree-folder">interfaces/</span> <span class="tree-comment">// Logger, DB, Transport interfaces</span></div>
+                <div>│   │   ├── <span class="tree-folder">logger/</span> <span class="tree-comment">// ZeroLog implementation</span></div>
+                <div>│   │   ├── <span class="tree-folder">database/</span> <span class="tree-comment">// GORM implementation</span></div>
+                <div>│   │   └── <span class="tree-folder">transport/</span> <span class="tree-comment">// Echo implementation</span></div>
+                <div>│   ├── <span class="tree-folder">modules/</span> <span class="tree-comment">// Feature-based co-located modules</span></div>
+                <div>├── <span class="tree-folder">templates/</span> <span class="tree-comment">// External Blueprints & .tmpl files</span></div>
+                <div>├── <span class="tree-folder">plugins/</span> <span class="tree-comment">// Custom Go generation plugins</span></div>
+                <div>├── <span class="tree-file">blueprint.yaml</span> <span class="tree-comment">// Dynamic mapping definition</span></div>
+                <div>└── <span class="tree-file">main.go</span> <span class="tree-comment">// Abstraction-friendly entry point</span></div>
+            </div>
+        </section>
+
+        <section id="cli-commands">
+            <h2>Command Reference</h2>
+            <p>Standard and and advanced commands.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Command</th>
+                        <th>Description</th>
+                        <th>Arguments/Flags</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>generate [name]</code></td>
+                        <td>Create a new project</td>
+                        <td><code>--module, --author, --blueprint</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>add module [name]</code></td>
+                        <td>Add a co-located CRUD module</td>
+                        <td><code>-f, --fields (Name:Type:Tag)</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>add model [name]</code></td>
+                        <td>Add standalone hexagonal layers</td>
+                        <td><code>--no-repo, --no-service</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="observability">
+            <h2>Observability</h2>
+            <p>Equip your services with enterprise-grade logging and shutdown mechanics.</p>
+            <h3>Graceful Shutdown Workflow</h3>
+            <ol>
+                <li>App receives <code>SIGTERM</code> (e.g., from Kubernetes).</li>
+                <li>All new HTTP requests are rejected.</li>
+                <li>Active requests are given 10 seconds to finish.</li>
+                <li>Database connections are closed safely via the <strong>Database Abstraction</strong>.</li>
+                <li>Process exits with code 0.</li>
+            </ol>
+        </section>
+
+        <section id="cicd">
+            <h2>CI/CD & Deployment</h2>
+            <p>Deploy with confidence using our pre-configured pipelines and Docker optimization.</p>
+            <h3>Multi-Stage Dockerfile</h3>
+            <pre><code># Builder Stage
+FROM golang:1.21-alpine AS builder
+...
+RUN go build -ldflags="-w -s" -o main .
+
+# Final Stage (Minimal Image)
+FROM alpine:3.18
+COPY --from=builder /app/main .
+CMD ["./main"]</code></pre>
+            <div class="alert">
+                <strong>Deployment Tip:</strong> The generated Docker image is typically < 25MB, ideal for fast cold starts in Serverless or Kubernetes environments.
+            </div>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 hexa-go Framework. Built for high-performance Gophers.</p>
+        </footer>
+    </main>
+
+    <script>
+        // Intersection Observer for sidebar active state
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    document.querySelectorAll('.nav-item').forEach(link => {
+                        link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+
+        document.querySelectorAll('section[id]').forEach(section => observer.observe(section));
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

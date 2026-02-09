@@ -1,0 +1,79 @@
+package service
+
+import (
+	"{{.ModuleName}}/model"
+	"{{.ModuleName}}/repository"
+)
+
+type {{.Name}}Service interface {
+	Create(req model.Create{{.Name}}Request) (*model.{{.Name}}Response, error)
+	GetAll() ([]model.{{.Name}}Response, error)
+	GetByID(id uint) (*model.{{.Name}}Response, error)
+	Update(id uint, req model.Create{{.Name}}Request) (*model.{{.Name}}Response, error)
+	Delete(id uint) error
+}
+
+type {{ToLower .Name}}Service struct {
+	repo repository.{{.Name}}Repository
+}
+
+func New{{.Name}}Service(repo repository.{{.Name}}Repository) {{.Name}}Service {
+	return &{{ToLower .Name}}Service{repo: repo}
+}
+
+func (s *{{ToLower .Name}}Service) Create(req model.Create{{.Name}}Request) (*model.{{.Name}}Response, error) {
+	m := &model.{{.Name}}{
+{{- range .Fields }}
+{{- if ne .Name "ID" }}
+		{{.Name}}: req.{{.Name}},
+{{- end }}
+{{- end }}
+	}
+	if err := s.repo.Create(m); err != nil {
+		return nil, err
+	}
+	res := m.ToResponse()
+	return &res, nil
+}
+
+func (s *{{ToLower .Name}}Service) GetAll() ([]model.{{.Name}}Response, error) {
+	items, err := s.repo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	var res []model.{{.Name}}Response
+	for _, item := range items {
+		res = append(res, item.ToResponse())
+	}
+	return res, nil
+}
+
+func (s *{{ToLower .Name}}Service) GetByID(id uint) (*model.{{.Name}}Response, error) {
+	item, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	res := item.ToResponse()
+	return &res, nil
+}
+
+func (s *{{ToLower .Name}}Service) Update(id uint, req model.Create{{.Name}}Request) (*model.{{.Name}}Response, error) {
+	m, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+{{- range .Fields }}
+{{- if ne .Name "ID" }}
+	m.{{.Name}} = req.{{.Name}}
+{{- end }}
+{{- end }}
+	if err := s.repo.Update(m); err != nil {
+		return nil, err
+	}
+	res := m.ToResponse()
+	return &res, nil
+}
+
+func (s *{{ToLower .Name}}Service) Delete(id uint) error {
+	return s.repo.Delete(id)
+}

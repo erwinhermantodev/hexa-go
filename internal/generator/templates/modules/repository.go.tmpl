@@ -1,0 +1,45 @@
+package {{.PackageName}}
+
+import (
+	"{{.Config.ModuleName}}/internal/pkg/interfaces"
+)
+
+type Repository interface {
+	Create(m *{{.Model.Name}}) error
+	GetAll() ([]{{.Model.Name}}, error)
+	GetByID(id uint) (*{{.Model.Name}}, error)
+	Update(m *{{.Model.Name}}) error
+	Delete(id uint) error
+}
+
+type repository struct {
+	db interfaces.Database
+}
+
+func NewRepository(db interfaces.Database) Repository {
+	return &repository{db: db}
+}
+
+func (r *repository) Create(m *{{.Model.Name}}) error {
+	return r.db.Create(m).Error
+}
+
+func (r *repository) GetAll() ([]{{.Model.Name}}, error) {
+	var results []{{.Model.Name}}
+	err := r.db.Find(&results).Error
+	return results, err
+}
+
+func (r *repository) GetByID(id uint) (*{{.Model.Name}}, error) {
+	var result {{.Model.Name}}
+	err := r.db.First(&result, id).Error
+	return &result, err
+}
+
+func (r *repository) Update(m *{{.Model.Name}}) error {
+	return r.db.Save(m).Error
+}
+
+func (r *repository) Delete(id uint) error {
+	return r.db.Delete(&{{.Model.Name}}{}, id).Error
+}

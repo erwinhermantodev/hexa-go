@@ -1,0 +1,81 @@
+package handler
+
+import (
+	"net/http"
+	"strconv"
+
+	"{{.ModuleName}}/model"
+	"{{.ModuleName}}/service"
+	"{{.ModuleName}}/utils"
+	"github.com/labstack/echo/v4"
+)
+
+type {{.Name}}Handler struct {
+	service   service.{{.Name}}Service
+	validator *utils.Validator
+}
+
+func New{{.Name}}Handler(service service.{{.Name}}Service, validator *utils.Validator) *{{.Name}}Handler {
+	return &{{.Name}}Handler{
+		service:   service,
+		validator: validator,
+	}
+}
+
+func (h *{{.Name}}Handler) Create{{.Name}}(c echo.Context) error {
+	var req model.Create{{.Name}}Request
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, utils.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	if err := h.validator.Validate(req); err != nil {
+		return c.JSON(http.StatusBadRequest, utils.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	res, err := h.service.Create(req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, utils.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	return c.JSON(http.StatusCreated, utils.SuccessResponse(http.StatusCreated, "Created successfully", res))
+}
+
+func (h *{{.Name}}Handler) GetAll{{.Name}}s(c echo.Context) error {
+	res, err := h.service.GetAll()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, utils.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return c.JSON(http.StatusOK, utils.SuccessResponse(http.StatusOK, "Fetched successfully", res))
+}
+
+func (h *{{.Name}}Handler) Get{{.Name}}(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	res, err := h.service.GetByID(uint(id))
+	if err != nil {
+		return c.JSON(http.StatusNotFound, utils.ErrorResponse(http.StatusNotFound, "Not found"))
+	}
+	return c.JSON(http.StatusOK, utils.SuccessResponse(http.StatusOK, "Fetched successfully", res))
+}
+
+func (h *{{.Name}}Handler) Update{{.Name}}(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	var req model.Create{{.Name}}Request
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, utils.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	res, err := h.service.Update(uint(id), req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, utils.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	return c.JSON(http.StatusOK, utils.SuccessResponse(http.StatusOK, "Updated successfully", res))
+}
+
+func (h *{{.Name}}Handler) Delete{{.Name}}(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	if err := h.service.Delete(uint(id)); err != nil {
+		return c.JSON(http.StatusInternalServerError, utils.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return c.JSON(http.StatusOK, utils.SuccessResponse(http.StatusOK, "Deleted successfully", nil))
+}

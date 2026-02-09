@@ -1,0 +1,79 @@
+package {{.PackageName}}
+
+import (
+	"net/http"
+	"strconv"
+
+	"{{.Config.ModuleName}}/internal/pkg/interfaces"
+	"{{.Config.ModuleName}}/utils"
+)
+
+type Handler struct {
+	service   Service
+	validator *utils.Validator
+}
+
+func NewHandler(service Service, validator *utils.Validator) *Handler {
+	return &Handler{
+		service:   service,
+		validator: validator,
+	}
+}
+
+func (h *Handler) Create(c interfaces.Context) error {
+	var req Create{{.Model.Name}}Request
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, utils.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	if err := h.validator.Validate(req); err != nil {
+		return c.JSON(http.StatusBadRequest, utils.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	res, err := h.service.Create(req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, utils.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	return c.JSON(http.StatusCreated, utils.SuccessResponse(http.StatusCreated, "Created successfully", res))
+}
+
+func (h *Handler) GetAll(c echo.Context) error {
+	res, err := h.service.GetAll()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, utils.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return c.JSON(http.StatusOK, utils.SuccessResponse(http.StatusOK, "Fetched successfully", res))
+}
+
+func (h *Handler) GetByID(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	res, err := h.service.GetByID(uint(id))
+	if err != nil {
+		return c.JSON(http.StatusNotFound, utils.ErrorResponse(http.StatusNotFound, "Not found"))
+	}
+	return c.JSON(http.StatusOK, utils.SuccessResponse(http.StatusOK, "Fetched successfully", res))
+}
+
+func (h *Handler) Update(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	var req Create{{.Model.Name}}Request
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, utils.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	res, err := h.service.Update(uint(id), req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, utils.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	return c.JSON(http.StatusOK, utils.SuccessResponse(http.StatusOK, "Updated successfully", res))
+}
+
+func (h *Handler) Delete(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	if err := h.service.Delete(uint(id)); err != nil {
+		return c.JSON(http.StatusInternalServerError, utils.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return c.JSON(http.StatusOK, utils.SuccessResponse(http.StatusOK, "Deleted successfully", nil))
+}

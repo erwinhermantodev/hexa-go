@@ -1,0 +1,36 @@
+package {{.PackageName}}
+
+import (
+{{- if or (contains .Model.Fields "time.Time") (contains .Model.Fields "gorm.DeletedAt") }}
+	"time"
+	"gorm.io/gorm"
+{{- end }}
+)
+
+type {{.Model.Name}} struct {
+{{- range .Model.Fields }}
+	{{.Name}} {{.Type}} {{.Tag}}
+{{- end }}
+}
+
+type Create{{.Model.Name}}Request struct {
+{{- range .Model.Fields }}
+{{- if ne .Name "ID" }}
+	{{.Name}} {{.Type}} {{.Tag}} {{if .Validate}}validate:"{{.Validate}}"{{end}}
+{{- end }}
+{{- end }}
+}
+
+type {{.Model.Name}}Response struct {
+{{- range .Model.Fields }}
+	{{.Name}} {{.Type}} {{.Tag}}
+{{- end }}
+}
+
+func (m *{{.Model.Name}}) ToResponse() {{.Model.Name}}Response {
+	return {{.Model.Name}}Response{
+{{- range .Model.Fields }}
+		{{.Name}}: m.{{.Name}},
+{{- end }}
+	}
+}

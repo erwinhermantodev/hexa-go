@@ -1,0 +1,81 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
+	"{{.ModuleName}}/transport/http/routes"
+	"{{.ModuleName}}/utils"
+
+	// [IMPORTS]
+)
+
+func main() {
+	// Initialize logger
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	// Load configuration
+	config, err := utils.LoadConfig(".")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load configuration")
+	}
+
+	// Initialize database
+	db, err := utils.InitDB(config)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize database")
+	}
+
+	// Initialize validator
+	validator := utils.NewValidator()
+
+	// [REPOS-INIT]
+
+	// [SERVICES-INIT]
+
+	// [HANDLERS-INIT]
+
+	// Initialize router
+	router := routes.Router{}
+	// [ROUTER-HANDLERS-INIT]
+
+	// Setup Echo
+	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
+
+	// Register routes
+	routes.SetupRoutes(e, &router)
+
+	// Start server
+	go func() {
+		port := fmt.Sprintf(":%d", config.Server.Port)
+		if err := e.Start(port); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("Failed to start server")
+		}
+	}()
+
+	// Wait for interruption signal to gracefully shutdown the server with a timeout of 10 seconds.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Info().Msg("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		log.Fatal().Err(err).Msg("Failed to gracefully shutdown server")
+	}
+}

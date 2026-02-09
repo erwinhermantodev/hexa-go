@@ -58,6 +58,8 @@ type Config struct {
 	ServerPort       string ` + "`mapstructure:\"server_port\"`" + `
 	ServerMode       string ` + "`mapstructure:\"server_mode\"`" + `
 	GRPCPort         string ` + "`mapstructure:\"grpc_port\"`" + `
+	LogLevel         string ` + "`mapstructure:\"log_level\"`" + `
+	DatabaseDriver   string ` + "`mapstructure:\"database_driver\"`" + `
 }
 
 func LoadConfig() (*Config, error) {
@@ -81,6 +83,8 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("server_port", "8080")
 	viper.SetDefault("server_mode", "debug")
 	viper.SetDefault("grpc_port", "9090")
+	viper.SetDefault("log_level", "info")
+	viper.SetDefault("database_driver", "postgres")
 
 	// Override with environment variables
 	if dbHost := os.Getenv("DB_HOST"); dbHost != "" {

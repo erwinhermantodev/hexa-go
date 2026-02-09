@@ -14,7 +14,7 @@ A powerful CLI tool for generating flexible Go projects with hexagonal architect
 
 ## 📁 Project Structure
 
-```
+````
 hexa-go/
 ├── main.go                     # Entry point
 ├── cmd/                        # CLI commands
@@ -34,117 +34,87 @@ hexa-go/
 │   ├── templates/              # Template definitions
 │   │   ├── base.go            # Base project templates
 │   │   ├── locale.go          # Localization templates
-│   │   ├── utils.go           # Utility templates
-│   │   ├── server.go          # Server and config templates
-│   │   ├── model.go           # Dynamic model templates
-│   │   ├── repository.go      # Repository templates
-│   │   ├── service.go         # Service templates
-│   │   └── handler.go         # Handler templates
-│   ├── prompts/                # Interactive prompts
-│   │   └── prompts.go         # User input handling
-│   └── utils/                  # Utility functions
-│       ├── file.go            # File operations
-│       └── parser.go          # Field parsing logic
-└── examples/                   # Usage examples
-    └── example-project/
-```
+# hexa-go 🚀
+
+`hexa-go` is a powerful CLI tool designed to scaffold Go projects using **Hexagonal Architecture**. It helps developers build scalable, maintainable, and production-ready applications by automating the creation of models, services, and handlers.
+
+## ✨ Features
+
+- **🏹 Hexagonal Architecture**: Separation of concerns between domain logic and infrastructure.
+- **🔌 Multi-Transport**: Built-in support for HTTP (Echo) and gRPC.
+- **🗃️ Database Ready**: Integrated with GORM and PostgreSQL.
+- **🔐 Security**: Pre-configured JWT authentication and password hashing.
+- **🌍 I18n**: Support for internationalization out-of-the-box.
+- **🐳 Containerized**: Ready-to-use Dockerfile and docker-compose.
+- **🛠️ Extensible**: Easily add models, services, and handlers via CLI.
+
+## 📚 Documentation
+
+- **[Full Documentation](DOCUMENTATION.md)**: Comprehensive guide on how to use `hexa-go`.
+- **[Enhancement Recommendations](RECOMMENDATIONS.md)**: Ideas and roadmap for future improvements.
 
 ## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/erwinhermantodev/hexa-go
-cd hexa-go
+go install github.com/erwinhermantodev/hexa-go
+````
 
-# Build the CLI
-go build -o hexa-go main.go
-
-# Make it globally available (optional)
-sudo mv hexa-go /usr/local/bin/
-```
-
-### Generate a New Project
+### Create a New Project
 
 ```bash
-# Interactive mode (recommended for first-time users)
-hexa-go generate my-awesome-api --interactive
-
-# Quick generation with flags
-hexa-go generate my-api \
-  --module "github.com/erwinhermantodev/my-api" \
-  --author "Your Name" \
-  --description "My awesome API project"
-
-# Minimal project (no authentication)
-hexa-go generate simple-api --minimal
+hexa-go generate my-project --interactive
 ```
 
-### Add Components to Existing Project
+---
 
-```bash
-# Navigate to your project directory
-cd my-api
+## 🛠️ Commands Reference
 
-# Add a new model with full CRUD
-hexa-go add model Product \
-  -f "Name:string::required,min=2" \
-  -f "Price:float64::required,gt=0" \
-  -f "Category:string::required" \
-  -f "Description:string"
+| Command       | Description                                  |
+| ------------- | -------------------------------------------- |
+| `generate`    | Create a new project structure               |
+| `add model`   | Add a domain model with Repo/Service/Handler |
+| `add service` | Add a standalone business logic service      |
+| `add handler` | Add a standalone HTTP handler                |
 
-# Add model without repository
-hexa-go add model Category --no-repo
+---
 
-# Add standalone service
-hexa-go add service PaymentProcessor
+## 🏗️ Project Structure
 
-# Add standalone handler
-hexa-go add handler HealthCheck
+```text
+my-project/
+├── cmd/                # Entry points
+├── internal/           # Private application code
+│   ├── model/          # Domain entities
+│   ├── repository/     # Data access layer
+│   ├── service/        # Business logic
+│   └── transport/      # HTTP/gRPC handlers
+├── utils/              # Helper functions
+└── ...
 ```
 
-## 📖 Usage Examples
+## 🤝 Contributing
 
-### Example 1: E-commerce API
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-```bash
-# Generate the base project
-hexa-go generate ecommerce-api \
-  --module "github.com/mycompany/ecommerce-api" \
-  --author "Development Team" \
-  --description "E-commerce REST API with authentication"
+## 📄 License
 
-cd ecommerce-api
-
-# Add Product model
-hexa-go add model Product \
-  -f "Name:string::required,min=2,max=100" \
-  -f "SKU:string::required,unique" \
-  -f "Price:float64::required,gt=0" \
-  -f "Stock:int::required,gte=0" \
-  -f "CategoryID:uint::required" \
-  -f "Description:string"
-
-# Add Category model
-hexa-go add model Category \
-  -f "Name:string::required,min=2,max=50" \
-  -f "Slug:string::required,unique" \
-  -f "Description:string"
-
-# Add Order model
-hexa-go add model Order \
-  -f "UserID:uint::required" \
-  -f "TotalAmount:float64::required,gt=0" \
-  -f "Status:string::required" \
-  -f "ShippingAddress:string::required"
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+D:uint::required" \
+ -f "TotalAmount:float64::required,gt=0" \
+ -f "Status:string::required" \
+ -f "ShippingAddress:string::required"
 
 # Add payment service
+
 hexa-go add service Payment
 
 # Add analytics handler
+
 hexa-go add handler Analytics
-```
+
+````
 
 ### Example 2: Blog API
 
@@ -175,7 +145,7 @@ hexa-go add model Comment \
 
 # Add search service
 hexa-go add service Search
-```
+````
 
 ### Example 3: Microservice
 
@@ -278,6 +248,7 @@ your-project/
 ## 🔄 Development Workflow
 
 ### 1. Initial Setup
+
 ```bash
 # Generate project
 hexa-go generate my-project --interactive
@@ -287,6 +258,7 @@ go mod tidy
 ```
 
 ### 2. Add Models Incrementally
+
 ```bash
 # Add core models first
 hexa-go add model User -f "Name:string::required" -f "Email:string::required,email"
@@ -296,6 +268,7 @@ hexa-go add model Profile -f "UserID:uint::required" -f "Bio:string"
 ```
 
 ### 3. Add Business Logic
+
 ```bash
 # Add services for complex business logic
 hexa-go add service NotificationService
@@ -303,6 +276,7 @@ hexa-go add service AnalyticsService
 ```
 
 ### 4. Add Custom Handlers
+
 ```bash
 # Add specialized handlers
 hexa-go add handler ReportHandler
@@ -310,6 +284,7 @@ hexa-go add handler WebhookHandler
 ```
 
 ### 5. Run and Test
+
 ```bash
 # Run the application
 go run main.go
