@@ -248,7 +248,9 @@ func InjectCodeAST(filePath, marker, stmtCode string) error {
 				return fmt.Errorf("%s already declares %q; remove it or choose another name", filepath.Base(filePath), name)
 			}
 		}
-		out.WriteString("\t" + renderNode(dummyFset, stmt) + "\n")
+		out.WriteByte('\t')
+		out.WriteString(renderNode(dummyFset, stmt))
+		out.WriteByte('\n')
 		existing[text] = true
 		for _, name := range definedNames(stmt) {
 			declared[name] = text
