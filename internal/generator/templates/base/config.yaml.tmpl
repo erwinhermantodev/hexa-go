@@ -1,0 +1,15 @@
+# Values here are overridden by environment variables (APP_ prefix, e.g. APP_SERVER_PORT).
+database_driver: postgres
+database_host: localhost
+database_port: "5432"
+database_user: postgres
+database_password: postgres
+database_name: {{.Name}}
+
+jwt_secret: change-me
+jwt_expiry: 24h
+
+server_port: "8080"
+server_mode: debug
+grpc_port: "9090"
+log_level: info

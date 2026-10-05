@@ -13,6 +13,7 @@ type ProjectConfig struct {
 // ModelConfig represents configuration for a model
 type ModelConfig struct {
 	Name       string
+	ModuleName string // set by the generator; used by the core templates
 	Fields     []FieldConfig
 	HasRepo    bool
 	HasService bool

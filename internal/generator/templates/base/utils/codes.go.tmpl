@@ -1,0 +1,35 @@
+package utils
+
+// HTTP Status Codes
+const (
+	StatusOK                   = 200
+	StatusCreated              = 201
+	StatusBadRequest           = 400
+	StatusUnauthorized         = 401
+	StatusForbidden            = 403
+	StatusNotFound             = 404
+	StatusInternalServerError  = 500
+)
+
+// Custom Error Codes
+const (
+	ErrCodeValidation          = "VALIDATION_ERROR"
+	ErrCodeUnauthorized        = "UNAUTHORIZED"
+	ErrCodeForbidden           = "FORBIDDEN"
+	ErrCodeNotFound            = "NOT_FOUND"
+	ErrCodeInternalServer      = "INTERNAL_SERVER_ERROR"
+	ErrCodeUserExists          = "USER_EXISTS"
+	ErrCodeInvalidCredentials  = "INVALID_CREDENTIALS"
+	ErrCodeTokenExpired        = "TOKEN_EXPIRED"
+	ErrCodeTokenInvalid        = "TOKEN_INVALID"
+	ErrCodeDuplicateEntry      = "DUPLICATE_ENTRY"
+	ErrCodeInvalidInput        = "INVALID_INPUT"
+)
+
+// Success Messages
+const (
+	MsgCreated    = "Resource created successfully"
+	MsgUpdated    = "Resource updated successfully"
+	MsgDeleted    = "Resource deleted successfully"
+	MsgRetrieved  = "Resource retrieved successfully"
+)

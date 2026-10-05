@@ -1,0 +1,19 @@
+package service
+
+type {{.ServiceName}}Service struct {
+	// Add your repository dependencies here
+	// Example: userRepo repository.UserRepository
+}
+
+func New{{.ServiceName}}Service() *{{.ServiceName}}Service {
+	return &{{.ServiceName}}Service{
+		// Initialize your dependencies here
+	}
+}
+
+// Add your business logic methods here
+// Example:
+// func (s *{{.ServiceName}}Service) DoSomething() error {
+//     // Business logic implementation
+//     return nil
+// }

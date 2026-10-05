@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"{{.Config.ModuleName}}/internal/pkg/interfaces"
 	"{{.Config.ModuleName}}/utils"
+	"github.com/labstack/echo/v4"
 )
 
 type Handler struct {
@@ -20,7 +20,7 @@ func NewHandler(service Service, validator *utils.Validator) *Handler {
 	}
 }
 
-func (h *Handler) Create(c interfaces.Context) error {
+func (h *Handler) Create(c echo.Context) error {
 	var req Create{{.Model.Name}}Request
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, utils.ErrorResponse(http.StatusBadRequest, err.Error()))

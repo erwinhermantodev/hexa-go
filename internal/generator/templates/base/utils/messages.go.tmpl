@@ -1,0 +1,86 @@
+package utils
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+type Messages struct {
+	data map[string]interface{}
+}
+
+func LoadMessages(locale string) (*Messages, error) {
+	filename := fmt.Sprintf("locales/%s.json", locale)
+	file, err := os.ReadFile(filename)
+	if err != nil {
+		// Fallback to English
+		file, err = os.ReadFile("locales/en.json")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(file, &data); err != nil {
+		return nil, err
+	}
+
+	return &Messages{data: data}, nil
+}
+
+func (m *Messages) Get(key string, args ...interface{}) string {
+	keys := splitKey(key)
+	value := m.getValue(keys, m.data)
+	
+	if value == "" {
+		return key // Return key if not found
+	}
+
+	if len(args) > 0 {
+		return fmt.Sprintf(value, args...)
+	}
+
+	return value
+}
+
+func (m *Messages) getValue(keys []string, data map[string]interface{}) string {
+	if len(keys) == 0 {
+		return ""
+	}
+
+	if len(keys) == 1 {
+		if val, ok := data[keys[0]].(string); ok {
+			return val
+		}
+		return ""
+	}
+
+	if nested, ok := data[keys[0]].(map[string]interface{}); ok {
+		return m.getValue(keys[1:], nested)
+	}
+
+	return ""
+}
+
+func splitKey(key string) []string {
+	var keys []string
+	current := ""
+	
+	for _, char := range key {
+		if char == '.' {
+			if current != "" {
+				keys = append(keys, current)
+				current = ""
+			}
+		} else {
+			current += string(char)
+		}
+	}
+	
+	if current != "" {
+		keys = append(keys, current)
+	}
+	
+	return keys
+}

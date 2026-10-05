@@ -1,0 +1,62 @@
+.PHONY: build run test clean fmt lint generate-model generate-service generate-handler docker-up docker-down docker-build migrate-up migrate-down swag-init swag-dev
+
+# Build the application
+build:
+	go build -o bin/main main.go
+
+# Run the application
+run:
+	go run main.go
+
+# Run tests
+test:
+	go test -v ./...
+
+# Clean build artifacts
+clean:
+	rm -rf bin/
+
+# Format code
+fmt:
+	go fmt ./...
+
+# Run linter
+lint:
+	golangci-lint run
+
+# Scaffolding (requires the hexa-go CLI on your PATH). Extra flags go in ARGS:
+#   make generate-model MODEL=Product ARGS='-f "Name:string::required" -f "Price:float64::required,gt=0"'
+generate-model:
+	hexa-go add model $(MODEL) $(ARGS)
+
+generate-service:
+	hexa-go add service $(SERVICE)
+
+generate-handler:
+	hexa-go add handler $(HANDLER)
+
+# Docker commands
+docker-up:
+	docker-compose up -d
+
+docker-down:
+	docker-compose down
+
+docker-build:
+	docker build -t {{.Name}} .
+
+# Database migrations
+migrate-up:
+	migrate -path migrations -database "postgres://postgres:postgres@localhost:5432/{{.Name}}?sslmode=disable" up
+
+migrate-down:
+	migrate -path migrations -database "postgres://postgres:postgres@localhost:5432/{{.Name}}?sslmode=disable" down
+
+# Generate Swagger documentation
+swag-init:
+	swag init -g main.go
+
+# Development
+swag-dev:
+	swag init -g main.go
+	air

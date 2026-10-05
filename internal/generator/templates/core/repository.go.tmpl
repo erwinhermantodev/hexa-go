@@ -13,34 +13,34 @@ type {{.Name}}Repository interface {
 	Delete(id uint) error
 }
 
-type {{ToLower .Name}}Repository struct {
+type {{camel .Name}}Repository struct {
 	db *gorm.DB
 }
 
 func New{{.Name}}Repository(db *gorm.DB) {{.Name}}Repository {
-	return &{{ToLower .Name}}Repository{db: db}
+	return &{{camel .Name}}Repository{db: db}
 }
 
-func (r *{{ToLower .Name}}Repository) Create(m *model.{{.Name}}) error {
+func (r *{{camel .Name}}Repository) Create(m *model.{{.Name}}) error {
 	return r.db.Create(m).Error
 }
 
-func (r *{{ToLower .Name}}Repository) GetAll() ([]model.{{.Name}}, error) {
+func (r *{{camel .Name}}Repository) GetAll() ([]model.{{.Name}}, error) {
 	var results []model.{{.Name}}
 	err := r.db.Find(&results).Error
 	return results, err
 }
 
-func (r *{{ToLower .Name}}Repository) GetByID(id uint) (*model.{{.Name}}, error) {
+func (r *{{camel .Name}}Repository) GetByID(id uint) (*model.{{.Name}}, error) {
 	var result model.{{.Name}}
 	err := r.db.First(&result, id).Error
 	return &result, err
 }
 
-func (r *{{ToLower .Name}}Repository) Update(m *model.{{.Name}}) error {
+func (r *{{camel .Name}}Repository) Update(m *model.{{.Name}}) error {
 	return r.db.Save(m).Error
 }
 
-func (r *{{ToLower .Name}}Repository) Delete(id uint) error {
+func (r *{{camel .Name}}Repository) Delete(id uint) error {
 	return r.db.Delete(&model.{{.Name}}{}, id).Error
 }

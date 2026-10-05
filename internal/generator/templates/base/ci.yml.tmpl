@@ -1,7 +1,4 @@
-package templates
-
-// GithubActionCiTemplate contains the GitHub Actions CI workflow
-const GithubActionCiTemplate = `name: CI
+name: CI
 
 on:
   push:
@@ -13,12 +10,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.21'
+        go-version-file: go.mod
 
     - name: Install dependencies
       run: go mod tidy
@@ -28,4 +25,3 @@ jobs:
 
     - name: Run Tests
       run: go test -v ./...
-`

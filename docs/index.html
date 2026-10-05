@@ -102,244 +102,223 @@
         
         <div class="nav-group">
             <div class="nav-title">Introduction</div>
-            <a href="#welcome" class="nav-item">Welcome</a>
+            <a href="#welcome" class="nav-item">Overview</a>
             <a href="#getting-started" class="nav-item">Quick Start</a>
-            <a href="#structure" class="nav-item">Directory Structure</a>
-            <a href="#architecture" class="nav-item">Hexagonal Pattern</a>
+            <a href="#architecture" class="nav-item">Architecture</a>
         </div>
 
         <div class="nav-group">
             <div class="nav-title">CLI Reference</div>
-            <a href="#cli-commands" class="nav-item">Command Palette</a>
-            <a href="#modular-generation" class="nav-item">Modular CRUD</a>
+            <a href="#cli-commands" class="nav-item">Commands</a>
+            <a href="#naming" class="nav-item">Naming Rules</a>
+            <a href="#fields" class="nav-item">Field Syntax</a>
+            <a href="#wiring" class="nav-item">How Wiring Works</a>
         </div>
 
         <div class="nav-group">
-            <div class="nav-title">Generic Framework</div>
-            <a href="#ast-injection" class="nav-item">Surgical AST Injection</a>
-            <a href="#blueprint-system" class="nav-item">Blueprint & Templates</a>
-            <a href="#core-sdk" class="nav-item">Core SDK Abstractions</a>
-            <a href="#hooks-plugins" class="nav-item">Hooks & Plugins</a>
-        </div>
-
-        <div class="nav-group">
-            <div class="nav-title">Technical Deep Dive</div>
-            <a href="#wiring" class="nav-item">Dependency Injection</a>
-            <a href="#config-ref" class="nav-item">Configuration Master</a>
-            <a href="#database" class="nav-item">Database Drivers</a>
+            <div class="nav-title">Generated Project</div>
+            <a href="#structure" class="nav-item">Directory Structure</a>
+            <a href="#config-ref" class="nav-item">Configuration</a>
+            <a href="#runtime" class="nav-item">Runtime &amp; Deployment</a>
+            <a href="#limitations" class="nav-item">Known Limitations</a>
         </div>
     </aside>
 
     <main>
         <section id="welcome">
-            <h1>The Generic Go Microservice Engine</h1>
-            <p><strong>hexa-go</strong> is no longer just a boilerplate—it's an extensible framework. Optimized for Hexagonal Architecture, it now features surgical AST manipulation, swappable core libraries, and a dynamic blueprint system.</p>
+            <h1>hexa-go</h1>
+            <p><strong>hexa-go</strong> scaffolds Go services in a hexagonal (ports and adapters) layout and keeps extending them. After the first <code>generate</code>, <code>hexa-go add model</code> writes the model, repository, service, handler and tests, then registers them in <code>main.go</code> and the route table.</p>
             <div class="feature-grid">
                 <div class="feature-card">
-                    <h4>Surgical AST Wiring</h4>
-                    <p>Uses Go's Abstract Syntax Tree to inject code without string markers, ensuring 100% reliable modifications.</p>
+                    <h4>Wiring done for you</h4>
+                    <p>New code is inserted above marker comments, imports are added without duplicates, and the file is re-formatted. A failed command rolls back every file it touched.</p>
                 </div>
                 <div class="feature-card">
-                    <h4>Library Agnostic</h4>
-                    <p>Abstractions for Logger, DB, and Transport. Swap Echo for Gin or GORM for sqlc with zero logic changes.</p>
+                    <h4>One syntax, one naming scheme</h4>
+                    <p><code>Name:Type[:GormOptions[:Validation]]</code> for fields; <code>order-item</code> becomes <code>OrderItem</code>, <code>order_item.go</code> and <code>/order-items</code>.</p>
                 </div>
                 <div class="feature-card">
-                    <h4>Blueprint Driven</h4>
-                    <p>Templates are external and configurable. Define your own architecture patterns via YAML.</p>
+                    <h4>Tested end to end</h4>
+                    <p>The test suite generates projects and runs <code>go build</code> and <code>go vet</code> on them, so a broken template fails the build.</p>
                 </div>
             </div>
-        </section>
-
-        <section id="ast-injection">
-            <h2>Surgical AST Injection</h2>
-            <p>Forget fragile string replacements. hexa-go parses your source code into an <strong>Abstract Syntax Tree</strong> to perform surgical modifications at the node level.</p>
-            
-            <h3>How it Works</h3>
-            <p>The CLI locates specific markers (which are now comment nodes in the AST) and inserts new nodes (struct fields, imports, statements) relative to them.</p>
-            <pre><code>// internal/utils/ast_utils.go
-func AddStructField(filePath, structName, fieldName, fieldType, tag string) error {
-    fset := token.NewFileSet()
-    f, _ := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
-    
-    ast.Inspect(f, func(n ast.Node) bool {
-        ts, ok := n.(*ast.TypeSpec)
-        if !ok || ts.Name.Name != structName { return true }
-        st, _ := ts.Type.(*ast.StructType)
-        
-        // Surgical Insert
-        newField := &ast.Field{
-            Names: []*ast.Ident{ast.NewIdent(fieldName)},
-            Type:  ast.NewIdent(fieldType),
-        }
-        st.Fields.List = append(st.Fields.List, newField)
-        return false
-    })
-    return saveAST(filePath, fset, f)
-}</code></pre>
-            <div class="alert">
-                <strong>Intelligence:</strong> The AST engine automatically handles import deduplication and preserves your code's formatting and comments.
-            </div>
-        </section>
-
-        <section id="blueprint-system">
-            <h2>Blueprint System</h2>
-            <p>The entire generation logic is now driven by a dynamic <strong>Blueprint</strong>. This separates the "What to build" from the "How to build".</p>
-            
-            <h3>Schema Definition</h3>
-            <p>Define your project structure in <code>blueprint.yaml</code>. Map templates to target paths and use dynamic placeholders.</p>
-            <pre><code># templates/blueprint.yaml
-name: "Standard Hexagonal"
-version: "1.0.0"
-templates:
-  - name: "module_model"
-    source: "modules/model.go.tmpl"
-    target: "internal/modules/{{.PackageName}}/model.go"
-  - name: "core_repository"
-    source: "core/repository.go.tmpl"
-    target: "repository/{{.ToLower .Name}}.go"
-
-pre_generate:
-  - "echo 'Starting generation...'"
-post_generate:
-  - "go mod tidy"</code></pre>
-            <div class="alert">
-                <strong>External Overrides:</strong> Simply place a <code>templates/</code> folder in your current directory to override the embedded defaults.
-            </div>
-        </section>
-
-        <section id="core-sdk">
-            <h2>Core SDK Abstractions</h2>
-            <p>Stop being locked into specific libraries. hexa-go uses <strong>Generic Interfaces</strong> for all core infrastructure components.</p>
-            
-            <h3>Transport Abstraction (Echo/Gin)</h3>
-            <pre><code>// internal/pkg/interfaces/transport.go
-type Context interface {
-    Bind(i interface{}) error
-    JSON(code int, i interface{}) error
-    Param(name string) string
-}
-
-// Your business logic only knows about the interface!
-func (h *Handler) Create(c interfaces.Context) error { ... }</code></pre>
-
-            <h3>Database Abstraction (GORM/SQLC)</h3>
-            <pre><code>// internal/pkg/interfaces/database.go
-type Database interface {
-    Create(ctx context.Context, value interface{}) error
-    Find(ctx context.Context, dest interface{}, conds ...interface{}) error
-}</code></pre>
-            <div class="alert">
-                <strong>Swappable:</strong> Switch from <strong>Echo</strong> to <strong>Gin</strong> just by providing a different wrapper implementation. No changes needed in your <code>modules/</code>.
-            </div>
-        </section>
-
-        <section id="hooks-plugins">
-            <h2>Hooks & Plugins</h2>
-            <p>Extend the framework's lifecycle with custom logic.</p>
-            <h3>Generation Hooks</h3>
-            <ul>
-                <li><strong>Pre-Generate</strong>: Run linter, check environment, or pre-fetch dependencies.</li>
-                <li><strong>Post-Generate</strong>: Format code, run migrations, or notify webhooks.</li>
-            </ul>
-            <h3>Go Plugins</h3>
-            <p>Drop a <code>.go</code> file into the <code>plugins/</code> directory. Hexa-Go will automatically discover and execute it during generation.</p>
         </section>
 
         <section id="getting-started">
-            <h2>Getting Started</h2>
-            <p>Launch your production project in three commands.</p>
-            <pre><code># 1. Install CLI
-go install github.com/erwinhermantodev/hexa-go@latest
+            <h2>Quick Start</h2>
+            <p>Requires Go 1.24 or newer.</p>
+            <pre><code>go install github.com/erwinhermantodev/hexa-go@latest
 
-# 2. Generate Project
-hexa-go generate my-app --module github.com/user/my-app
+hexa-go generate my-api --module github.com/me/my-api
+cd my-api &amp;&amp; go mod tidy
 
-# 3. Initialize & Run
-cd my-app && go mod tidy && go run main.go</code></pre>
+hexa-go add model Product -f "Name:string::required" -f "Price:float64::required,gt=0"
+
+docker-compose up -d postgres
+go run main.go
+curl localhost:8080/api/v1/health</code></pre>
         </section>
 
-        <section id="structure">
-            <h2>Directory Structure</h2>
-            <p>The refined layout of a Generic Hexa-Go project.</p>
-            <div class="directory-tree">
-                <div>├── <span class="tree-folder">internal/</span></div>
-                <div>│   ├── <span class="tree-folder">pkg/</span> <span class="tree-comment">// Core SDK Abstractions</span></div>
-                <div>│   │   ├── <span class="tree-folder">interfaces/</span> <span class="tree-comment">// Logger, DB, Transport interfaces</span></div>
-                <div>│   │   ├── <span class="tree-folder">logger/</span> <span class="tree-comment">// ZeroLog implementation</span></div>
-                <div>│   │   ├── <span class="tree-folder">database/</span> <span class="tree-comment">// GORM implementation</span></div>
-                <div>│   │   └── <span class="tree-folder">transport/</span> <span class="tree-comment">// Echo implementation</span></div>
-                <div>│   ├── <span class="tree-folder">modules/</span> <span class="tree-comment">// Feature-based co-located modules</span></div>
-                <div>├── <span class="tree-folder">templates/</span> <span class="tree-comment">// External Blueprints & .tmpl files</span></div>
-                <div>├── <span class="tree-folder">plugins/</span> <span class="tree-comment">// Custom Go generation plugins</span></div>
-                <div>├── <span class="tree-file">blueprint.yaml</span> <span class="tree-comment">// Dynamic mapping definition</span></div>
-                <div>└── <span class="tree-file">main.go</span> <span class="tree-comment">// Abstraction-friendly entry point</span></div>
-            </div>
+        <section id="architecture">
+            <h2>Architecture</h2>
+            <p>Dependencies point inward. Handlers depend on service interfaces, services on repository interfaces, and <code>main.go</code> is the only place that builds concrete objects.</p>
+            <pre><code>HTTP handler  &rarr;  service  &rarr;  repository interface  &rarr;  GORM adapter  &rarr;  database
+(transport)      (core)       (port)                    (adapter)</code></pre>
+            <p>Use <code>add model</code> for the layered layout (<code>model/</code>, <code>repository/</code>, <code>service/</code>) or <code>add module</code> to keep one feature in one package under <code>internal/modules/</code>.</p>
         </section>
 
         <section id="cli-commands">
-            <h2>Command Reference</h2>
-            <p>Standard and and advanced commands.</p>
+            <h2>Commands</h2>
             <table>
                 <thead>
-                    <tr>
-                        <th>Command</th>
-                        <th>Description</th>
-                        <th>Arguments/Flags</th>
-                    </tr>
+                    <tr><th>Command</th><th>Description</th><th>Flags</th></tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td><code>generate [name]</code></td>
                         <td>Create a new project</td>
-                        <td><code>--module, --author, --blueprint</code></td>
-                    </tr>
-                    <tr>
-                        <td><code>add module [name]</code></td>
-                        <td>Add a co-located CRUD module</td>
-                        <td><code>-f, --fields (Name:Type:Tag)</code></td>
+                        <td><code>-m, -a, -d, -i, --minimal, --force</code></td>
                     </tr>
                     <tr>
                         <td><code>add model [name]</code></td>
-                        <td>Add standalone hexagonal layers</td>
-                        <td><code>--no-repo, --no-service</code></td>
+                        <td>Model, repository, service, handler and tests</td>
+                        <td><code>-f, --no-repo, --no-service, --no-handler, --force</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>add module [name]</code></td>
+                        <td>The same pieces co-located in <code>internal/modules/&lt;name&gt;</code></td>
+                        <td><code>-f, --force</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>add service [name]</code></td>
+                        <td>Empty service, registered in <code>main.go</code></td>
+                        <td><code>--force</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>add handler [name]</code></td>
+                        <td>Empty handler with a <code>Health</code> method</td>
+                        <td><code>--force</code></td>
                     </tr>
                 </tbody>
             </table>
-        </section>
-
-        <section id="observability">
-            <h2>Observability</h2>
-            <p>Equip your services with enterprise-grade logging and shutdown mechanics.</p>
-            <h3>Graceful Shutdown Workflow</h3>
-            <ol>
-                <li>App receives <code>SIGTERM</code> (e.g., from Kubernetes).</li>
-                <li>All new HTTP requests are rejected.</li>
-                <li>Active requests are given 10 seconds to finish.</li>
-                <li>Database connections are closed safely via the <strong>Database Abstraction</strong>.</li>
-                <li>Process exits with code 0.</li>
-            </ol>
-        </section>
-
-        <section id="cicd">
-            <h2>CI/CD & Deployment</h2>
-            <p>Deploy with confidence using our pre-configured pipelines and Docker optimization.</p>
-            <h3>Multi-Stage Dockerfile</h3>
-            <pre><code># Builder Stage
-FROM golang:1.21-alpine AS builder
-...
-RUN go build -ldflags="-w -s" -o main .
-
-# Final Stage (Minimal Image)
-FROM alpine:3.18
-COPY --from=builder /app/main .
-CMD ["./main"]</code></pre>
             <div class="alert">
-                <strong>Deployment Tip:</strong> The generated Docker image is typically < 25MB, ideal for fast cold starts in Serverless or Kubernetes environments.
+                <strong>Safe by default:</strong> commands exit non-zero on error, never overwrite existing files without <code>--force</code>, and can be run twice without duplicating registrations.
             </div>
         </section>
 
+        <section id="naming">
+            <h2>Naming Rules</h2>
+            <p>Give a name in any style (<code>order-item</code>, <code>order_item</code>, <code>OrderItem</code>, <code>Order Item</code>). The generator derives the rest:</p>
+            <table>
+                <thead><tr><th>Form</th><th>Example</th><th>Used for</th></tr></thead>
+                <tbody>
+                    <tr><td>Pascal</td><td><code>OrderItem</code></td><td>types, <code>NewOrderItemService</code></td></tr>
+                    <tr><td>camel</td><td><code>orderItem</code></td><td>variables in <code>main.go</code></td></tr>
+                    <tr><td>snake</td><td><code>order_item</code></td><td>file names</td></tr>
+                    <tr><td>kebab plural</td><td><code>order-items</code></td><td>URL path; <code>Category</code> becomes <code>/categories</code></td></tr>
+                    <tr><td>package</td><td><code>orderitem</code></td><td>module package name</td></tr>
+                </tbody>
+            </table>
+            <p>A trailing <code>Service</code> or <code>Handler</code> is dropped, and module names that would clash with generated packages (<code>utils</code>, <code>routes</code>, ...) are rejected.</p>
+        </section>
+
+        <section id="fields">
+            <h2>Field Syntax</h2>
+            <pre><code>Name:Type[:GormOptions[:Validation]]
+
+-f "Title:string::required,min=5,max=200"
+-f "Slug:string:unique:required"
+-f "Published:bool:default=false"
+-f "PublishedAt:*time.Time"</code></pre>
+            <table>
+                <thead><tr><th>Slot</th><th>Meaning</th></tr></thead>
+                <tbody>
+                    <tr><td><code>Type</code></td><td><code>string</code>, <code>int</code>, <code>uint</code>, <code>int64</code>, <code>float64</code>, <code>bool</code>, <code>time.Time</code>, <code>gorm.DeletedAt</code>, pointers, slices, custom types</td></tr>
+                    <tr><td><code>GormOptions</code></td><td>separated by <code>;</code>; write values with <code>=</code> (<code>default=false</code> becomes <code>default:false</code>)</td></tr>
+                    <tr><td><code>Validation</code></td><td>go-playground/validator tags separated by <code>,</code></td></tr>
+                </tbody>
+            </table>
+            <p><code>ID</code>, <code>CreatedAt</code>, <code>UpdatedAt</code> and <code>DeletedAt</code> are added automatically and are not accepted in create or update requests. Mistakes, such as a GORM option in the validation slot, are reported before any file is written.</p>
+        </section>
+
+        <section id="wiring">
+            <h2>How Wiring Works</h2>
+            <p><code>main.go</code> and <code>routes.go</code> contain marker comments. New code is inserted on the line above a marker and the file is re-formatted with <code>gofmt</code>.</p>
+            <table>
+                <thead><tr><th>Marker</th><th>File</th><th>Receives</th></tr></thead>
+                <tbody>
+                    <tr><td><code>// [REPOS-INIT]</code></td><td>main.go</td><td><code>xRepo := repository.NewXRepository(db)</code></td></tr>
+                    <tr><td><code>// [SERVICES-INIT]</code></td><td>main.go</td><td><code>xService := service.NewXService(xRepo)</code></td></tr>
+                    <tr><td><code>// [HANDLERS-INIT]</code></td><td>main.go</td><td><code>xHandler := handler.NewXHandler(...)</code></td></tr>
+                    <tr><td><code>// [ROUTER-HANDLERS-INIT]</code></td><td>main.go</td><td><code>router.XHandler = xHandler</code></td></tr>
+                    <tr><td><code>// [HANDLER-FIELDS-EXPORTED]</code></td><td>routes.go</td><td>the <code>XHandler</code> field on <code>Router</code></td></tr>
+                    <tr><td><code>// [ROUTES-INIT]</code></td><td>routes.go</td><td>the route group</td></tr>
+                </tbody>
+            </table>
+            <div class="alert">
+                <strong>Keep the markers.</strong> Without them <code>hexa-go add</code> fails and rolls back. Everything else is yours to edit.
+            </div>
+        </section>
+
+        <section id="structure">
+            <h2>Directory Structure</h2>
+            <div class="directory-tree">
+                <div>├── <span class="tree-file">main.go</span> <span class="tree-comment">// config, database, wiring, server, graceful shutdown</span></div>
+                <div>├── <span class="tree-folder">model/</span> <span class="tree-comment">// entity, create request, response</span></div>
+                <div>├── <span class="tree-folder">repository/</span> <span class="tree-comment">// GORM repositories</span></div>
+                <div>├── <span class="tree-folder">service/</span> <span class="tree-comment">// business logic</span></div>
+                <div>├── <span class="tree-folder">transport/</span></div>
+                <div>│   ├── <span class="tree-folder">http/handler/</span> <span class="tree-comment">// Echo handlers</span></div>
+                <div>│   ├── <span class="tree-folder">http/routes/</span> <span class="tree-comment">// route table, /swagger, /api/v1/health</span></div>
+                <div>│   └── <span class="tree-folder">grpc/</span> <span class="tree-comment">// skeleton, not started yet</span></div>
+                <div>├── <span class="tree-folder">internal/modules/</span> <span class="tree-comment">// co-located modules (add module)</span></div>
+                <div>├── <span class="tree-folder">utils/</span> <span class="tree-comment">// config, database, jwt, password, validator, response</span></div>
+                <div>├── <span class="tree-folder">configs/</span>, <span class="tree-folder">locales/</span>, <span class="tree-folder">migrations/</span>, <span class="tree-folder">docs/</span></div>
+                <div>└── <span class="tree-file">Makefile</span>, <span class="tree-file">Dockerfile</span>, <span class="tree-file">docker-compose.yml</span>, <span class="tree-file">.github/workflows/ci.yml</span></div>
+            </div>
+        </section>
+
+        <section id="config-ref">
+            <h2>Configuration</h2>
+            <p>Values come from <code>configs/config.yaml</code>, then environment variables. Every key can be set as <code>APP_&lt;KEY&gt;</code>; these shorter names also work.</p>
+            <table>
+                <thead><tr><th>Variable</th><th>Default</th></tr></thead>
+                <tbody>
+                    <tr><td><code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>DB_PASSWORD</code>, <code>DB_NAME</code></td><td>localhost, 5432, postgres, postgres, project name</td></tr>
+                    <tr><td><code>APP_DATABASE_DRIVER</code></td><td><code>postgres</code> (or <code>mysql</code>, <code>sqlite</code>)</td></tr>
+                    <tr><td><code>JWT_SECRET</code></td><td><code>your-secret-key</code> (change it)</td></tr>
+                    <tr><td><code>SERVER_PORT</code>, <code>GRPC_PORT</code></td><td>8080, 9090</td></tr>
+                </tbody>
+            </table>
+            <p><code>.env.example</code> is a reference only; nothing loads a <code>.env</code> file.</p>
+        </section>
+
+        <section id="runtime">
+            <h2>Runtime &amp; Deployment</h2>
+            <ul>
+                <li><strong>Server:</strong> Echo with request logging, panic recovery and CORS.</li>
+                <li><strong>Shutdown:</strong> on <code>SIGINT</code> or <code>SIGTERM</code> the server stops accepting requests and waits up to 10 seconds for in-flight ones.</li>
+                <li><strong>Docker:</strong> multi-stage Dockerfile; <code>docker-compose up -d</code> starts the app and PostgreSQL.</li>
+                <li><strong>CI:</strong> a GitHub Actions workflow builds and tests with the Go version from <code>go.mod</code>.</li>
+                <li><strong>Swagger:</strong> <code>make swag-init</code> generates the spec; the UI is served at <code>/swagger/index.html</code>.</li>
+            </ul>
+        </section>
+
+        <section id="limitations">
+            <h2>Known Limitations</h2>
+            <div class="alert">
+                <strong>Generated apps do not create their tables.</strong> Add <code>db.AutoMigrate(...)</code> or use migrations. See <a href="https://github.com/erwinhermantodev/hexa-go/blob/master/ROADMAP.md">ROADMAP.md</a> for the full list.
+            </div>
+            <ul>
+                <li>No auth endpoints yet; JWT and bcrypt helpers exist, and the default <code>User</code> service stores passwords as received.</li>
+                <li>Only create requests are validated, not updates.</li>
+                <li><code>.env</code> is not loaded and <code>log_level</code> is not applied to the logger.</li>
+                <li>gRPC is a skeleton: no <code>.proto</code> files and the server is not started.</li>
+            </ul>
+        </section>
+
         <footer>
-            <p>&copy; 2026 hexa-go Framework. Built for high-performance Gophers.</p>
+            <p>&copy; 2026 hexa-go</p>
         </footer>
     </main>
 

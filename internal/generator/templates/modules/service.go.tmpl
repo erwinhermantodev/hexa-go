@@ -18,10 +18,8 @@ func NewService(repo Repository) Service {
 
 func (s *service) Create(req Create{{.Model.Name}}Request) (*{{.Model.Name}}Response, error) {
 	m := &{{.Model.Name}}{
-{{- range .Model.Fields }}
-{{- if ne .Name "ID" }}
+{{- range writable .Model.Fields }}
 		{{.Name}}: req.{{.Name}},
-{{- end }}
 {{- end }}
 	}
 	if err := s.repo.Create(m); err != nil {
@@ -57,10 +55,8 @@ func (s *service) Update(id uint, req Create{{.Model.Name}}Request) (*{{.Model.N
 	if err != nil {
 		return nil, err
 	}
-{{- range .Model.Fields }}
-{{- if ne .Name "ID" }}
+{{- range writable .Model.Fields }}
 	m.{{.Name}} = req.{{.Name}}
-{{- end }}
 {{- end }}
 	if err := s.repo.Update(m); err != nil {
 		return nil, err

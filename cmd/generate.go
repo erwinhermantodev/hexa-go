@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
+	"strings"
 
 	"github.com/erwinhermantodev/hexa-go/internal/config"
 	"github.com/erwinhermantodev/hexa-go/internal/generator"
@@ -14,7 +14,7 @@ var generateCmd = &cobra.Command{
 	Use:   "generate [project-name]",
 	Short: "Generate a new Go project",
 	Args:  cobra.MaximumNArgs(1),
-	Run:   generateProject,
+	RunE:  generateProject,
 }
 
 func init() {
@@ -23,14 +23,19 @@ func init() {
 	generateCmd.Flags().StringP("description", "d", "", "Project description")
 	generateCmd.Flags().BoolP("interactive", "i", false, "Interactive mode for defining models")
 	generateCmd.Flags().BoolP("minimal", "", false, "Generate minimal project without auth")
+	generateCmd.Flags().Bool("force", false, "Generate into an existing non-empty directory")
 }
 
-func generateProject(cmd *cobra.Command, args []string) {
+func generateProject(cmd *cobra.Command, args []string) error {
 	var projectName string
 	if len(args) > 0 {
 		projectName = args[0]
 	} else {
 		projectName = prompts.PromptForInput("Enter project name: ")
+	}
+
+	if projectName == "" || strings.ContainsAny(projectName, `/\`) || projectName == "." || projectName == ".." {
+		return fmt.Errorf("invalid project name %q: use a plain directory name", projectName)
 	}
 
 	moduleName, _ := cmd.Flags().GetString("module")
@@ -76,9 +81,9 @@ func generateProject(cmd *cobra.Command, args []string) {
 	fmt.Printf("Generating project '%s'...\n", projectName)
 
 	gen := generator.New()
+	gen.Force, _ = cmd.Flags().GetBool("force")
 	if err := gen.CreateProject(projectConfig); err != nil {
-		fmt.Printf("Error creating project: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("creating project: %w", err)
 	}
 
 	fmt.Printf("✅ Project '%s' generated successfully!\n", projectName)
@@ -87,4 +92,5 @@ func generateProject(cmd *cobra.Command, args []string) {
 	fmt.Printf("  cd %s\n", projectName)
 	fmt.Println("  go mod tidy")
 	fmt.Println("  go run main.go")
+	return nil
 }

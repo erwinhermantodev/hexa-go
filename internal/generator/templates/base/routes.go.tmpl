@@ -1,14 +1,27 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo/v4"
+	echoSwagger "github.com/swaggo/echo-swagger"
+
+	_ "{{.ModuleName}}/docs"
+	// [IMPORTS]
 )
 
+// Router holds the handlers registered by `hexa-go add ...`.
 type Router struct {
 	// [HANDLER-FIELDS-EXPORTED]
 }
 
-func SetupRoutes(e *echo.Group, r *Router) {
+// SetupRoutes registers all HTTP routes on the Echo instance.
+func SetupRoutes(e *echo.Echo, r *Router) {
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
+
 	api := e.Group("/api/v1")
+	api.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "service": "{{.Name}}"})
+	})
 	// [ROUTES-INIT]
 }

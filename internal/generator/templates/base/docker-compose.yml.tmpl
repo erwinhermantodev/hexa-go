@@ -1,6 +1,30 @@
-version: '3.8'
 services:
   app:
     build: .
     ports:
       - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME={{.Name}}
+    depends_on:
+      - postgres
+    volumes:
+      - ./configs:/root/configs
+      - ./locales:/root/locales
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB={{.Name}}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

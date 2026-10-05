@@ -13,10 +13,13 @@ import (
 // PromptForInput prompts user for input with given message
 func PromptForInput(prompt string) string {
 	fmt.Print(prompt)
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	return strings.TrimSpace(scanner.Text())
+	line, _ := stdin.ReadString('\n')
+	return strings.TrimSpace(line)
 }
+
+// stdin is shared across prompts: a fresh reader per call would discard
+// buffered input when stdin is piped.
+var stdin = bufio.NewReader(os.Stdin)
 
 // PromptForModels prompts user to define custom models
 func PromptForModels() []config.ModelConfig {
@@ -49,29 +52,34 @@ func PromptForModels() []config.ModelConfig {
 
 // PromptForModelFields prompts user to define fields for a model
 func PromptForModelFields(modelName string) []config.FieldConfig {
-	var fields []config.FieldConfig
-
 	fmt.Printf("Define fields for %s model:\n", modelName)
-	fmt.Println("Format: field_name field_type [gorm_tag] [json_tag] [validation]")
-	fmt.Println("Example: Name string required min=2,max=100")
+	fmt.Println("Format: Name:Type[:GormOptions[:Validation]]")
+	fmt.Println("Example: Title:string::required,min=5")
+	fmt.Println("         Slug:string:unique:required")
+	fmt.Println("ID, CreatedAt, UpdatedAt and DeletedAt are added automatically.")
 	fmt.Println("Press Enter on empty line to finish.")
 
-	// Add default fields
-	fields = append(fields, config.DefaultModelFields()...)
-
+	var fields []config.FieldConfig
+	seen := map[string]bool{}
 	for {
 		input := PromptForInput("Field: ")
 		if input == "" {
 			break
 		}
-
-		field := utils.ParseFieldInput(input)
-		if field.Name != "" {
-			fields = append(fields, field)
+		field, err := utils.ParseField(input)
+		if err != nil {
+			fmt.Printf("  ❌ %v\n", err)
+			continue
 		}
+		if seen[field.Name] {
+			fmt.Printf("  ❌ duplicate field %q\n", field.Name)
+			continue
+		}
+		seen[field.Name] = true
+		fields = append(fields, field)
 	}
 
-	return fields
+	return utils.WithDefaultFields(fields)
 }
 
 // PromptForServices prompts user to define custom services

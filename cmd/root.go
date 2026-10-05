@@ -7,7 +7,10 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "hexa-go",
 	Short: "Generate a flexible Go Hexagonal architecture project with custom models, repositories, services, and handlers",
-	Long:  `A CLI tool to generate a Go project starter pack with customizable authentication service, REST API, and business logic components.`,
+	// Errors are reported by main; printing usage on top of a generator error is noise.
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	Long:          `A CLI tool to generate a Go project starter pack with customizable authentication service, REST API, and business logic components.`,
 }
 
 // Execute runs the root command

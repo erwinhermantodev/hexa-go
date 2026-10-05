@@ -1,0 +1,86 @@
+package utils
+
+import (
+	"os"
+
+	"github.com/spf13/viper"
+)
+
+type Config struct {
+	DatabaseHost     string `mapstructure:"database_host"`
+	DatabasePort     string `mapstructure:"database_port"`
+	DatabaseUser     string `mapstructure:"database_user"`
+	DatabasePassword string `mapstructure:"database_password"`
+	DatabaseName     string `mapstructure:"database_name"`
+	JWTSecret        string `mapstructure:"jwt_secret"`
+	JWTExpiry        string `mapstructure:"jwt_expiry"`
+	ServerPort       string `mapstructure:"server_port"`
+	ServerMode       string `mapstructure:"server_mode"`
+	GRPCPort         string `mapstructure:"grpc_port"`
+	LogLevel         string `mapstructure:"log_level"`
+	DatabaseDriver   string `mapstructure:"database_driver"`
+}
+
+func LoadConfig() (*Config, error) {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./configs")
+	viper.AddConfigPath(".")
+
+	// Environment variables
+	viper.SetEnvPrefix("APP")
+	viper.AutomaticEnv()
+
+	// Set defaults
+	viper.SetDefault("database_host", "localhost")
+	viper.SetDefault("database_port", "5432")
+	viper.SetDefault("database_user", "postgres")
+	viper.SetDefault("database_password", "postgres")
+	viper.SetDefault("database_name", "{{.Name}}")
+	viper.SetDefault("jwt_secret", "your-secret-key")
+	viper.SetDefault("jwt_expiry", "24h")
+	viper.SetDefault("server_port", "8080")
+	viper.SetDefault("server_mode", "debug")
+	viper.SetDefault("grpc_port", "9090")
+	viper.SetDefault("log_level", "info")
+	viper.SetDefault("database_driver", "postgres")
+
+	// Override with environment variables
+	if dbHost := os.Getenv("DB_HOST"); dbHost != "" {
+		viper.Set("database_host", dbHost)
+	}
+	if dbPort := os.Getenv("DB_PORT"); dbPort != "" {
+		viper.Set("database_port", dbPort)
+	}
+	if dbUser := os.Getenv("DB_USER"); dbUser != "" {
+		viper.Set("database_user", dbUser)
+	}
+	if dbPassword := os.Getenv("DB_PASSWORD"); dbPassword != "" {
+		viper.Set("database_password", dbPassword)
+	}
+	if dbName := os.Getenv("DB_NAME"); dbName != "" {
+		viper.Set("database_name", dbName)
+	}
+	if jwtSecret := os.Getenv("JWT_SECRET"); jwtSecret != "" {
+		viper.Set("jwt_secret", jwtSecret)
+	}
+	if serverPort := os.Getenv("SERVER_PORT"); serverPort != "" {
+		viper.Set("server_port", serverPort)
+	}
+	if grpcPort := os.Getenv("GRPC_PORT"); grpcPort != "" {
+		viper.Set("grpc_port", grpcPort)
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return nil, err
+		}
+	}
+
+	var config Config
+	if err := viper.Unmarshal(&config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}

@@ -1,8 +1,6 @@
 package {{.PackageName}}
 
-import (
-	"{{.Config.ModuleName}}/internal/pkg/interfaces"
-)
+import "gorm.io/gorm"
 
 type Repository interface {
 	Create(m *{{.Model.Name}}) error
@@ -13,10 +11,10 @@ type Repository interface {
 }
 
 type repository struct {
-	db interfaces.Database
+	db *gorm.DB
 }
 
-func NewRepository(db interfaces.Database) Repository {
+func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 

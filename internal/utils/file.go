@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"strings"
 )
@@ -11,19 +12,18 @@ func FileExists(filename string) bool {
 	return !os.IsNotExist(err)
 }
 
-// GetModuleName extracts module name from go.mod
-func GetModuleName() string {
+// GetModuleName extracts the module name from go.mod in the current directory.
+func GetModuleName() (string, error) {
 	content, err := os.ReadFile("go.mod")
 	if err != nil {
-		return "unknown"
+		return "", fmt.Errorf("no go.mod found; run this command in the root of a Go project")
 	}
 
-	lines := strings.Split(string(content), "\n")
-	for _, line := range lines {
+	for _, line := range strings.Split(string(content), "\n") {
 		if strings.HasPrefix(line, "module ") {
-			return strings.TrimSpace(strings.TrimPrefix(line, "module"))
+			return strings.Trim(strings.TrimSpace(strings.TrimPrefix(line, "module")), `"`), nil
 		}
 	}
 
-	return "unknown"
+	return "", fmt.Errorf("go.mod has no module directive")
 }

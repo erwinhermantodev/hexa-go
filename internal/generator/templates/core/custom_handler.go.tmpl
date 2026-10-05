@@ -1,0 +1,25 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+	"{{.Config.ModuleName}}/utils"
+)
+
+type {{.HandlerName}}Handler struct {
+	validator *utils.Validator
+}
+
+func New{{.HandlerName}}Handler(validator *utils.Validator) *{{.HandlerName}}Handler {
+	return &{{.HandlerName}}Handler{validator: validator}
+}
+
+// Add your handler methods here.
+
+func (h *{{.HandlerName}}Handler) Health(c echo.Context) error {
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"status":  "ok",
+		"handler": "{{.HandlerName}}Handler",
+	})
+}

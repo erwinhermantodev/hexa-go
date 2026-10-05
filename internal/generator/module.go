@@ -3,97 +3,97 @@ package generator
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/erwinhermantodev/hexa-go/internal/config"
+	"github.com/erwinhermantodev/hexa-go/internal/naming"
 	"github.com/erwinhermantodev/hexa-go/internal/utils"
 )
 
 // GenerateModuleFiles generates all files for a module in a single directory
+// and wires it into main.go and routes.go. Like GenerateModelFiles it is
+// all-or-nothing.
 func (g *Generator) GenerateModuleFiles(projectConfig config.ProjectConfig, model config.ModelConfig, moduleName string) error {
+	if err := naming.ValidatePackage(moduleName); err != nil {
+		return err
+	}
+	name := naming.Pascal(moduleName)
+	model.Name = name
+	model.ModuleName = projectConfig.ModuleName
+	packageName := naming.Package(moduleName)
+
 	baseDir := projectConfig.Name
 	if baseDir == "" {
 		baseDir = "."
 	}
-
-	modulePath := filepath.Join(baseDir, "internal/modules", strings.ToLower(moduleName))
-	packageName := strings.ToLower(moduleName)
-
-	data := map[string]interface{}{
-		"Config":      projectConfig,
-		"Model":       model,
-		"PackageName": packageName,
-	}
-
-	// 1. Generate Model
-	if err := g.GenerateFromSource(filepath.Join(modulePath, "model.go"), "modules/model.go.tmpl", data); err != nil {
-		return err
-	}
-
-	// 2. Generate Repository
-	if err := g.GenerateFromSource(filepath.Join(modulePath, "repository.go"), "modules/repository.go.tmpl", data); err != nil {
-		return err
-	}
-
-	// 3. Generate Service
-	if err := g.GenerateFromSource(filepath.Join(modulePath, "service.go"), "modules/service.go.tmpl", data); err != nil {
-		return err
-	}
-
-	// 4. Generate Handler
-	if err := g.GenerateFromSource(filepath.Join(modulePath, "handler.go"), "modules/handler.go.tmpl", data); err != nil {
-		return err
-	}
-
-	// 5. Automated Wiring
+	modulePath := filepath.Join(baseDir, "internal/modules", packageName)
 	mainPath := filepath.Join(baseDir, "main.go")
 	routesPath := filepath.Join(baseDir, "transport/http/routes/routes.go")
-	moduleImport := fmt.Sprintf("%s/internal/modules/%s", projectConfig.ModuleName, packageName)
 
-	// Inject Imports
-	if err := utils.AddImport(mainPath, moduleImport); err != nil {
-		return err
+	files := map[string]string{
+		"model.go":      "modules/model.go.tmpl",
+		"repository.go": "modules/repository.go.tmpl",
+		"service.go":    "modules/service.go.tmpl",
+		"handler.go":    "modules/handler.go.tmpl",
 	}
-	if err := utils.AddImport(routesPath, moduleImport); err != nil {
-		return err
-	}
-
-	// Inject Repository Init
-	repoInit := fmt.Sprintf("%[1]sRepo := %[1]s.NewRepository(db)", packageName)
-	if err := utils.InjectCodeAST(mainPath, "// [REPOS-INIT]", repoInit); err != nil {
-		return err
+	var created []string
+	for f := range files {
+		created = append(created, filepath.Join(modulePath, f))
 	}
 
-	// Inject Service Init
-	serviceInit := fmt.Sprintf("%[1]sService := %[1]s.NewService(%[1]sRepo)", packageName)
-	if err := utils.InjectCodeAST(mainPath, "// [SERVICES-INIT]", serviceInit); err != nil {
+	if err := refuseOverwrite(g.Force, created...); err != nil {
 		return err
 	}
-
-	// Inject Handler Init
-	handlerInit := fmt.Sprintf("%[1]sHandler := %[1]s.NewHandler(%[1]sService, validator)", packageName)
-	if err := utils.InjectCodeAST(mainPath, "// [HANDLERS-INIT]", handlerInit); err != nil {
-		return err
+	if !g.Force {
+		if err := g.checkRouterField(routesPath, name+"Handler"); err != nil {
+			return err
+		}
 	}
 
-	// Inject into Router in main.go
-	routerInit := fmt.Sprintf("router.%sHandler = %sHandler", strings.Title(packageName), packageName)
-	if err := utils.InjectCodeAST(mainPath, "// [ROUTER-HANDLERS-INIT]", routerInit); err != nil {
-		return err
-	}
+	return atomically([]string{mainPath, routesPath}, created, func() error {
+		data := map[string]interface{}{
+			"Config":      projectConfig,
+			"Model":       model,
+			"PackageName": packageName,
+		}
+		for f, tmpl := range files {
+			if err := g.GenerateFromSource(filepath.Join(modulePath, f), tmpl, data); err != nil {
+				return err
+			}
+		}
 
-	// Inject into Router fields in routes.go
-	handlerFieldName := fmt.Sprintf("%sHandler", strings.Title(strings.ToLower(model.Name)))
-	handlerFieldType := fmt.Sprintf("*%s.Handler", packageName)
-	if err := utils.AddStructField(routesPath, "Router", handlerFieldName, handlerFieldType, "`json:\"-\"`"); err != nil {
-		return err
-	}
+		moduleImport := fmt.Sprintf("%s/internal/modules/%s", projectConfig.ModuleName, packageName)
+		for _, path := range []string{mainPath, routesPath} {
+			if err := utils.AddImport(path, moduleImport); err != nil {
+				return err
+			}
+		}
 
-	// Inject into Router routes in routes.go
-	routeInjection := fmt.Sprintf("%[1]ss := api.Group(\"/%[1]ss\")\n\t%[1]ss.POST(\"\", r.%[2]sHandler.Create%[2]s)\n\t%[1]ss.GET(\"\", r.%[2]sHandler.GetAll%[2]ss)\n\t%[1]ss.GET(\"/:id\", r.%[2]sHandler.Get%[2]s)\n\t%[1]ss.PUT(\"/:id\", r.%[2]sHandler.Update%[2]s)\n\t%[1]ss.DELETE(\"/:id\", r.%[2]sHandler.Delete%[2]s)", strings.ToLower(model.Name), strings.Title(packageName))
-	if err := utils.InjectCodeAST(routesPath, "// [ROUTES-INIT]", routeInjection); err != nil {
-		return err
-	}
+		// Variables are named after the module (blogPost...) while the package
+		// qualifier is its lower-case package name (blogpost).
+		v := naming.Camel(name)
+		inits := []struct{ marker, code string }{
+			{"// [REPOS-INIT]", fmt.Sprintf("%sRepo := %s.NewRepository(db)", v, packageName)},
+			{"// [SERVICES-INIT]", fmt.Sprintf("%sService := %s.NewService(%sRepo)", v, packageName, v)},
+			{"// [HANDLERS-INIT]", fmt.Sprintf("%sHandler := %s.NewHandler(%sService, validator)", v, packageName, v)},
+			{"// [ROUTER-HANDLERS-INIT]", fmt.Sprintf("router.%sHandler = %sHandler", name, v)},
+		}
+		for _, in := range inits {
+			if err := utils.InjectCodeAST(mainPath, in.marker, in.code); err != nil {
+				return err
+			}
+		}
 
-	return nil
+		field := name + "Handler"
+		if err := utils.AddStructField(routesPath, "Router", field, "*"+packageName+".Handler", ""); err != nil {
+			return err
+		}
+		group := v + "Routes"
+		routes := fmt.Sprintf(`%[1]s := api.Group("/%[2]s")
+	%[1]s.POST("", r.%[3]s.Create)
+	%[1]s.GET("", r.%[3]s.GetAll)
+	%[1]s.GET("/:id", r.%[3]s.GetByID)
+	%[1]s.PUT("/:id", r.%[3]s.Update)
+	%[1]s.DELETE("/:id", r.%[3]s.Delete)`, group, naming.Kebab(naming.Plural(name)), field)
+		return utils.InjectCodeAST(routesPath, "// [ROUTES-INIT]", routes)
+	})
 }

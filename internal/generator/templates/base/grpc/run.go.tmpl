@@ -1,0 +1,15 @@
+package grpc
+
+import (
+	"log"
+	"{{.ModuleName}}/utils"
+)
+
+func Run(config *utils.Config) {
+	server := NewServer(config)
+	
+	log.Println("Starting gRPC server...")
+	if err := server.Start(); err != nil {
+		log.Fatalf("Failed to start gRPC server: %v", err)
+	}
+}

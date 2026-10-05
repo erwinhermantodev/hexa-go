@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -26,7 +25,7 @@ func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	// Load configuration
-	config, err := utils.LoadConfig(".")
+	config, err := utils.LoadConfig()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load configuration")
 	}
@@ -37,8 +36,11 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to initialize database")
 	}
 
+	_ = db
+
 	// Initialize validator
 	validator := utils.NewValidator()
+	_ = validator
 
 	// [REPOS-INIT]
 
@@ -61,7 +63,7 @@ func main() {
 
 	// Start server
 	go func() {
-		port := fmt.Sprintf(":%d", config.Server.Port)
+		port := ":" + config.ServerPort
 		if err := e.Start(port); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Err(err).Msg("Failed to start server")
 		}

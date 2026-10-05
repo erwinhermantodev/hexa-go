@@ -4,14 +4,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"text/template"
 
 	"github.com/erwinhermantodev/hexa-go/internal/config"
+	"github.com/erwinhermantodev/hexa-go/internal/naming"
 )
 
 // Generator handles code generation
-type Generator struct{}
+type Generator struct {
+	// Force allows generated files to overwrite existing ones and wiring that
+	// is already registered.
+	Force bool
+}
 
 // New creates a new Generator instance
 func New() *Generator {
@@ -20,7 +26,7 @@ func New() *Generator {
 
 // GenerateFromSource generates a file from a source template path
 func (g *Generator) GenerateFromSource(targetPath, sourcePath string, data interface{}) error {
-	content, err := g.GetTemplateContent("", sourcePath)
+	content, err := g.GetTemplateContent(sourcePath)
 	if err != nil {
 		return err
 	}
@@ -38,7 +44,38 @@ func (g *Generator) CreateFileFromTemplate(filePath, tmplContent string, data in
 	tmpl, err := template.New("file").Funcs(template.FuncMap{
 		"ToLower": strings.ToLower,
 		"ToUpper": strings.ToUpper,
-		"Title":   strings.Title,
+		"pascal":  naming.Pascal,
+		"camel":   naming.Camel,
+		"snake":   naming.Snake,
+		"kebab":   naming.Kebab,
+		"plural":  naming.Plural,
+		// reqTag builds the tag for a request field: the JSON name plus the
+		// validate tag. gorm options are dropped, and a hidden response field
+		// (json:"-", such as Password) is still accepted in requests.
+		"reqTag": func(f config.FieldConfig) string {
+			name := strings.Split(reflect.StructTag(strings.Trim(f.Tag, "`")).Get("json"), ",")[0]
+			if name == "" || name == "-" {
+				name = naming.Snake(f.Name)
+			}
+			tag := fmt.Sprintf("json:%q", name)
+			if f.Validate != "" {
+				tag += fmt.Sprintf(" validate:%q", f.Validate)
+			}
+			return "`" + tag + "`"
+		},
+		// writable drops the fields clients may not set: the primary key and
+		// the timestamps managed by GORM.
+		"writable": func(fields []config.FieldConfig) []config.FieldConfig {
+			var out []config.FieldConfig
+			for _, f := range fields {
+				switch f.Name {
+				case "ID", "CreatedAt", "UpdatedAt", "DeletedAt":
+				default:
+					out = append(out, f)
+				}
+			}
+			return out
+		},
 		"contains": func(fields []config.FieldConfig, fieldType string) bool {
 			for _, field := range fields {
 				if strings.Contains(field.Type, fieldType) {

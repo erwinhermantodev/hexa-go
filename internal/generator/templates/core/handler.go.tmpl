@@ -40,7 +40,7 @@ func (h *{{.Name}}Handler) Create{{.Name}}(c echo.Context) error {
 	return c.JSON(http.StatusCreated, utils.SuccessResponse(http.StatusCreated, "Created successfully", res))
 }
 
-func (h *{{.Name}}Handler) GetAll{{.Name}}s(c echo.Context) error {
+func (h *{{.Name}}Handler) GetAll{{plural .Name}}(c echo.Context) error {
 	res, err := h.service.GetAll()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, utils.ErrorResponse(http.StatusInternalServerError, err.Error()))

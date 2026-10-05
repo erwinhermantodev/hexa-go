@@ -1,0 +1,40 @@
+package repository
+
+import (
+	"testing"
+	"github.com/stretchr/testify/assert"
+	"{{.Config.ModuleName}}/model"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+)
+
+func setup{{.Model.Name}}TestDB() *gorm.DB {
+	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db.AutoMigrate(&model.{{.Model.Name}}{})
+	return db
+}
+
+func Test{{.Model.Name}}Repository_Create(t *testing.T) {
+	db := setup{{.Model.Name}}TestDB()
+	repo := New{{.Model.Name}}Repository(db)
+
+	entity := &model.{{.Model.Name}}{
+		// Fill with some default fields if possible or leave for user
+	}
+
+	err := repo.Create(entity)
+	assert.NoError(t, err)
+	assert.NotZero(t, entity.ID)
+}
+
+func Test{{.Model.Name}}Repository_GetByID(t *testing.T) {
+	db := setup{{.Model.Name}}TestDB()
+	repo := New{{.Model.Name}}Repository(db)
+
+	entity := &model.{{.Model.Name}}{}
+	db.Create(entity)
+
+	found, err := repo.GetByID(entity.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, entity.ID, found.ID)
+}

@@ -3,29 +3,45 @@ package generator
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/erwinhermantodev/hexa-go/internal/config"
-	"github.com/erwinhermantodev/hexa-go/internal/templates"
+	"github.com/erwinhermantodev/hexa-go/internal/naming"
+	"github.com/erwinhermantodev/hexa-go/internal/utils"
 )
 
-// GenerateServiceFile generates a standalone service file
+// GenerateServiceFile generates a standalone service file and wires it into
+// main.go. A trailing "Service" in the name is dropped, so `add service
+// NotificationService` and `add service Notification` are the same.
 func (g *Generator) GenerateServiceFile(projectConfig config.ProjectConfig, serviceName string) error {
+	serviceName = naming.TrimSuffix(serviceName, "Service")
+	if err := naming.Validate(serviceName); err != nil {
+		return err
+	}
+	name := naming.Pascal(serviceName)
+
 	baseDir := projectConfig.Name
 	if baseDir == "" {
 		baseDir = "."
 	}
+	servicePath := filepath.Join(baseDir, "service", naming.Snake(name)+".go")
+	mainPath := filepath.Join(baseDir, "main.go")
 
-	servicePath := filepath.Join(baseDir, "service", strings.ToLower(serviceName)+".go")
-	if err := g.CreateFileFromTemplate(servicePath, templates.CustomServiceTemplate, map[string]interface{}{
-		"Config":      projectConfig,
-		"ServiceName": serviceName,
-	}); err != nil {
+	if err := refuseOverwrite(g.Force, servicePath); err != nil {
 		return err
 	}
 
-	// Automated Wiring
-	mainPath := filepath.Join(baseDir, "main.go")
-	serviceInit := fmt.Sprintf("%[1]sService := service.New%[2]sService()", strings.ToLower(serviceName), serviceName)
-	return g.InjectCode(mainPath, "// [SERVICES-INIT]", serviceInit)
+	return atomically([]string{mainPath}, []string{servicePath}, func() error {
+		if err := g.GenerateFromSource(servicePath, "core/custom_service.go.tmpl", map[string]interface{}{
+			"Config":      projectConfig,
+			"ServiceName": name,
+		}); err != nil {
+			return err
+		}
+		if err := utils.AddImport(mainPath, projectConfig.ModuleName+"/service"); err != nil {
+			return err
+		}
+		// The blank assignment keeps main.go compiling until the service is used.
+		init := fmt.Sprintf("%[1]sService := service.New%[2]sService()\n\t_ = %[1]sService", naming.Camel(name), name)
+		return utils.InjectCodeAST(mainPath, "// [SERVICES-INIT]", init)
+	})
 }

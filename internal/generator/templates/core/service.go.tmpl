@@ -13,20 +13,18 @@ type {{.Name}}Service interface {
 	Delete(id uint) error
 }
 
-type {{ToLower .Name}}Service struct {
+type {{camel .Name}}Service struct {
 	repo repository.{{.Name}}Repository
 }
 
 func New{{.Name}}Service(repo repository.{{.Name}}Repository) {{.Name}}Service {
-	return &{{ToLower .Name}}Service{repo: repo}
+	return &{{camel .Name}}Service{repo: repo}
 }
 
-func (s *{{ToLower .Name}}Service) Create(req model.Create{{.Name}}Request) (*model.{{.Name}}Response, error) {
+func (s *{{camel .Name}}Service) Create(req model.Create{{.Name}}Request) (*model.{{.Name}}Response, error) {
 	m := &model.{{.Name}}{
-{{- range .Fields }}
-{{- if ne .Name "ID" }}
+{{- range writable .Fields }}
 		{{.Name}}: req.{{.Name}},
-{{- end }}
 {{- end }}
 	}
 	if err := s.repo.Create(m); err != nil {
@@ -36,7 +34,7 @@ func (s *{{ToLower .Name}}Service) Create(req model.Create{{.Name}}Request) (*mo
 	return &res, nil
 }
 
-func (s *{{ToLower .Name}}Service) GetAll() ([]model.{{.Name}}Response, error) {
+func (s *{{camel .Name}}Service) GetAll() ([]model.{{.Name}}Response, error) {
 	items, err := s.repo.GetAll()
 	if err != nil {
 		return nil, err
@@ -48,7 +46,7 @@ func (s *{{ToLower .Name}}Service) GetAll() ([]model.{{.Name}}Response, error) {
 	return res, nil
 }
 
-func (s *{{ToLower .Name}}Service) GetByID(id uint) (*model.{{.Name}}Response, error) {
+func (s *{{camel .Name}}Service) GetByID(id uint) (*model.{{.Name}}Response, error) {
 	item, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -57,15 +55,13 @@ func (s *{{ToLower .Name}}Service) GetByID(id uint) (*model.{{.Name}}Response, e
 	return &res, nil
 }
 
-func (s *{{ToLower .Name}}Service) Update(id uint, req model.Create{{.Name}}Request) (*model.{{.Name}}Response, error) {
+func (s *{{camel .Name}}Service) Update(id uint, req model.Create{{.Name}}Request) (*model.{{.Name}}Response, error) {
 	m, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
-{{- range .Fields }}
-{{- if ne .Name "ID" }}
+{{- range writable .Fields }}
 	m.{{.Name}} = req.{{.Name}}
-{{- end }}
 {{- end }}
 	if err := s.repo.Update(m); err != nil {
 		return nil, err
@@ -74,6 +70,6 @@ func (s *{{ToLower .Name}}Service) Update(id uint, req model.Create{{.Name}}Requ
 	return &res, nil
 }
 
-func (s *{{ToLower .Name}}Service) Delete(id uint) error {
+func (s *{{camel .Name}}Service) Delete(id uint) error {
 	return s.repo.Delete(id)
 }

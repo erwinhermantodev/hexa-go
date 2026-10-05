@@ -14,10 +14,8 @@ type {{.Model.Name}} struct {
 }
 
 type Create{{.Model.Name}}Request struct {
-{{- range .Model.Fields }}
-{{- if ne .Name "ID" }}
-	{{.Name}} {{.Type}} {{.Tag}} {{if .Validate}}validate:"{{.Validate}}"{{end}}
-{{- end }}
+{{- range writable .Model.Fields }}
+	{{.Name}} {{.Type}} {{reqTag .}}
 {{- end }}
 }
 
