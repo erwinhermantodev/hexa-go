@@ -38,6 +38,8 @@ func main() {
 
 	_ = db
 
+	// [MIGRATE]
+
 	// Initialize validator
 	validator := utils.NewValidator()
 	_ = validator
@@ -59,7 +61,9 @@ func main() {
 	e.Use(middleware.CORS())
 
 	// Register routes
-	routes.SetupRoutes(e, &router)
+	if err := routes.SetupRoutes(e, &router); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register routes")
+	}
 
 	// Start server
 	go func() {

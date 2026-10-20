@@ -127,7 +127,7 @@
     <main>
         <section id="welcome">
             <h1>hexa-go</h1>
-            <p><strong>hexa-go</strong> scaffolds Go services in a hexagonal (ports and adapters) layout and keeps extending them. After the first <code>generate</code>, <code>hexa-go add model</code> writes the model, repository, service, handler and tests, then registers them in <code>main.go</code> and the route table.</p>
+            <p><strong>hexa-go</strong> scaffolds Go services in a hexagonal (ports and adapters) layout and keeps extending them. After the first <code>generate</code>, <code>hexa-go add model</code> writes the model, repository, service, handler and tests, then registers them in <code>main.go</code> and the JSON route table (<code>routes.json</code>).</p>
             <div class="feature-grid">
                 <div class="feature-card">
                     <h4>Wiring done for you</h4>
@@ -252,7 +252,6 @@ curl localhost:8080/api/v1/health</code></pre>
                     <tr><td><code>// [HANDLERS-INIT]</code></td><td>main.go</td><td><code>xHandler := handler.NewXHandler(...)</code></td></tr>
                     <tr><td><code>// [ROUTER-HANDLERS-INIT]</code></td><td>main.go</td><td><code>router.XHandler = xHandler</code></td></tr>
                     <tr><td><code>// [HANDLER-FIELDS-EXPORTED]</code></td><td>routes.go</td><td>the <code>XHandler</code> field on <code>Router</code></td></tr>
-                    <tr><td><code>// [ROUTES-INIT]</code></td><td>routes.go</td><td>the route group</td></tr>
                 </tbody>
             </table>
             <div class="alert">
@@ -307,7 +306,7 @@ curl localhost:8080/api/v1/health</code></pre>
         <section id="limitations">
             <h2>Known Limitations</h2>
             <div class="alert">
-                <strong>Generated apps do not create their tables.</strong> Add <code>db.AutoMigrate(...)</code> or use migrations. See <a href="https://github.com/erwinhermantodev/hexa-go/blob/master/ROADMAP.md">ROADMAP.md</a> for the full list.
+                <strong>Tables are created with <code>AutoMigrate</code> at startup.</strong> There are no versioned migrations. See <a href="https://github.com/erwinhermantodev/hexa-go/blob/master/ROADMAP.md">ROADMAP.md</a> for the full list.
             </div>
             <ul>
                 <li>No auth endpoints yet; JWT and bcrypt helpers exist, and the default <code>User</code> service stores passwords as received.</li>

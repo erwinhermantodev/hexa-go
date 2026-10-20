@@ -52,6 +52,9 @@ go test ./... -short   # offline unit tests
 go test ./...          # also builds and vets generated projects (needs network)
 ```
 
+`hexa-go --version` prints the version; release builds set it with
+`-ldflags "-X github.com/erwinhermantodev/hexa-go/cmd.version=vX.Y.Z"`.
+
 ## License
 
 MIT

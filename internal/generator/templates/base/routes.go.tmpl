@@ -1,7 +1,12 @@
 package routes
 
 import (
+	_ "embed"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	echoSwagger "github.com/swaggo/echo-swagger"
@@ -10,18 +15,78 @@ import (
 	// [IMPORTS]
 )
 
+// routesJSON is the route table. `hexa-go add ...` appends entries to it.
+//
+//go:embed routes.json
+var routesJSON []byte
+
 // Router holds the handlers registered by `hexa-go add ...`.
 type Router struct {
 	// [HANDLER-FIELDS-EXPORTED]
 }
 
-// SetupRoutes registers all HTTP routes on the Echo instance.
-func SetupRoutes(e *echo.Echo, r *Router) {
+// routeDef is one entry of routes.json. Handler is "Field.Method": a field of
+// Router and an echo handler method on it.
+type routeDef struct {
+	Method  string `json:"method"`
+	Path    string `json:"path"`
+	Handler string `json:"handler"`
+}
+
+type routeFile struct {
+	Prefix string     `json:"prefix"`
+	Routes []routeDef `json:"routes"`
+}
+
+// SetupRoutes registers /swagger, /health and every route listed in
+// routes.json. It fails before serving if an entry is malformed or names a
+// handler that does not exist.
+func SetupRoutes(e *echo.Echo, r *Router) error {
+	var rf routeFile
+	if err := json.Unmarshal(routesJSON, &rf); err != nil {
+		return fmt.Errorf("routes.json: %w", err)
+	}
+
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	api := e.Group("/api/v1")
+	api := e.Group(rf.Prefix)
 	api.GET("/health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "service": "{{.Name}}"})
 	})
-	// [ROUTES-INIT]
+
+	for _, def := range rf.Routes {
+		h, err := resolve(r, def.Handler)
+		if err != nil {
+			return fmt.Errorf("routes.json %s %s: %w", def.Method, def.Path, err)
+		}
+		method := strings.ToUpper(def.Method)
+		switch method {
+		case http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+		default:
+			return fmt.Errorf("routes.json %s %s: unsupported method", def.Method, def.Path)
+		}
+		api.Add(method, def.Path, h)
+	}
+	return nil
+}
+
+// resolve finds the handler method named "Field.Method" on the router.
+func resolve(r *Router, name string) (echo.HandlerFunc, error) {
+	field, method, ok := strings.Cut(name, ".")
+	if !ok || field == "" || method == "" {
+		return nil, fmt.Errorf("handler %q must look like Field.Method", name)
+	}
+	f := reflect.ValueOf(r).Elem().FieldByName(field)
+	if !f.IsValid() || (f.Kind() == reflect.Ptr && f.IsNil()) {
+		return nil, fmt.Errorf("router has no registered handler %q", field)
+	}
+	m := f.MethodByName(method)
+	if !m.IsValid() {
+		return nil, fmt.Errorf("%s has no method %q", field, method)
+	}
+	h, ok := m.Interface().(func(echo.Context) error)
+	if !ok {
+		return nil, fmt.Errorf("%s.%s is not an echo handler (want func(echo.Context) error)", field, method)
+	}
+	return h, nil
 }

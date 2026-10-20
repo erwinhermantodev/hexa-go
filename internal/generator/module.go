@@ -28,6 +28,7 @@ func (g *Generator) GenerateModuleFiles(projectConfig config.ProjectConfig, mode
 	modulePath := filepath.Join(baseDir, "internal/modules", packageName)
 	mainPath := filepath.Join(baseDir, "main.go")
 	routesPath := filepath.Join(baseDir, "transport/http/routes/routes.go")
+	routesJSONPath := filepath.Join(baseDir, "transport/http/routes/routes.json")
 
 	files := map[string]string{
 		"model.go":      "modules/model.go.tmpl",
@@ -49,7 +50,7 @@ func (g *Generator) GenerateModuleFiles(projectConfig config.ProjectConfig, mode
 		}
 	}
 
-	return atomically([]string{mainPath, routesPath}, created, func() error {
+	return atomically([]string{mainPath, routesPath, routesJSONPath}, created, func() error {
 		data := map[string]interface{}{
 			"Config":      projectConfig,
 			"Model":       model,
@@ -72,6 +73,7 @@ func (g *Generator) GenerateModuleFiles(projectConfig config.ProjectConfig, mode
 		// qualifier is its lower-case package name (blogpost).
 		v := naming.Camel(name)
 		inits := []struct{ marker, code string }{
+			{"// [MIGRATE]", migrateStmt(packageName+"."+name, name)},
 			{"// [REPOS-INIT]", fmt.Sprintf("%sRepo := %s.NewRepository(db)", v, packageName)},
 			{"// [SERVICES-INIT]", fmt.Sprintf("%sService := %s.NewService(%sRepo)", v, packageName, v)},
 			{"// [HANDLERS-INIT]", fmt.Sprintf("%sHandler := %s.NewHandler(%sService, validator)", v, packageName, v)},
@@ -87,13 +89,13 @@ func (g *Generator) GenerateModuleFiles(projectConfig config.ProjectConfig, mode
 		if err := utils.AddStructField(routesPath, "Router", field, "*"+packageName+".Handler", ""); err != nil {
 			return err
 		}
-		group := v + "Routes"
-		routes := fmt.Sprintf(`%[1]s := api.Group("/%[2]s")
-	%[1]s.POST("", r.%[3]s.Create)
-	%[1]s.GET("", r.%[3]s.GetAll)
-	%[1]s.GET("/:id", r.%[3]s.GetByID)
-	%[1]s.PUT("/:id", r.%[3]s.Update)
-	%[1]s.DELETE("/:id", r.%[3]s.Delete)`, group, naming.Kebab(naming.Plural(name)), field)
-		return utils.InjectCodeAST(routesPath, "// [ROUTES-INIT]", routes)
+		base := "/" + naming.Kebab(naming.Plural(name))
+		return utils.AddRoutes(routesJSONPath, []utils.Route{
+			{Method: "POST", Path: base, Handler: field + ".Create"},
+			{Method: "GET", Path: base, Handler: field + ".GetAll"},
+			{Method: "GET", Path: base + "/:id", Handler: field + ".GetByID"},
+			{Method: "PUT", Path: base + "/:id", Handler: field + ".Update"},
+			{Method: "DELETE", Path: base + "/:id", Handler: field + ".Delete"},
+		})
 	})
 }

@@ -96,7 +96,7 @@ keep one feature in one package.
 ### Failure behavior
 
 - Commands exit non-zero and print `❌ <reason>`.
-- A command that fails after writing files removes the files it created and restores `main.go` and `routes.go`.
+- A command that fails after writing files removes the files it created and restores `main.go`, `routes.go` and `routes.json`.
 - Existing files are never overwritten without `--force`.
 - Running the same command twice does not duplicate registrations.
 
@@ -171,7 +171,8 @@ my-api/
 ├── service/user.go  auth.go        business logic (+ user_test.go); auth.go is an empty stub
 ├── transport/
 │   ├── http/handler/user_handler.go  (+ user_handler_test.go)
-│   ├── http/routes/routes.go       Router struct, /swagger, /api/v1/health, model routes
+│   ├── http/routes/routes.go       Router struct, JSON route loader, /swagger, /api/v1/health
+│   ├── http/routes/routes.json     route table (embedded into the binary)
 │   └── grpc/server.go  run.go      gRPC skeleton, not started by main.go
 ├── utils/                          config, database, jwt, password, validator, messages, codes, response
 └── migrations/                     empty, for golang-migrate
@@ -191,21 +192,44 @@ builds the concrete objects.
 
 ## How wiring works
 
-`main.go` and `routes.go` contain marker comments:
+`main.go` and `routes.go` contain marker comments; the HTTP route table lives in `routes.json` (see below):
 
 | Marker | File | Receives |
 | --- | --- | --- |
+| `// [MIGRATE]` | main.go | `db.AutoMigrate(&model.X{})` |
 | `// [REPOS-INIT]` | main.go | `xRepo := repository.NewXRepository(db)` |
 | `// [SERVICES-INIT]` | main.go | `xService := service.NewXService(xRepo)` |
 | `// [HANDLERS-INIT]` | main.go | `xHandler := handler.NewXHandler(xService, validator)` |
 | `// [ROUTER-HANDLERS-INIT]` | main.go | `router.XHandler = xHandler` |
 | `// [HANDLER-FIELDS-EXPORTED]` | routes.go | the `XHandler` field on `Router` |
-| `// [ROUTES-INIT]` | routes.go | the route group for the model |
 | `// [IMPORTS]` | both | (imports are added through the AST) |
 
 New code is inserted on the line above a marker and the file is re-formatted with `gofmt`. Imports are added
 without duplicates. Leave the markers in place; without them `hexa-go add` fails and rolls back. You can freely
 edit everything else, including the code that was already inserted.
+
+## Routes in JSON
+
+Routes are data, not code. `transport/http/routes/routes.json` is embedded in the binary and read by
+`SetupRoutes` at startup:
+
+```json
+{
+  "prefix": "/api/v1",
+  "routes": [
+    { "method": "GET", "path": "/products/:id", "handler": "ProductHandler.GetProduct" }
+  ]
+}
+```
+
+- `handler` is `RouterField.Method`: an exported field of `Router` and an echo handler method
+  (`func(echo.Context) error`) on it.
+- `add model` and `add module` append their five CRUD routes; an existing method and path pair is never duplicated.
+- You can edit the file by hand to rename paths, remove routes or point a route at a different handler method.
+  `GET /health` and `/swagger` stay in Go.
+- A bad entry (unknown field or method, unsupported HTTP method, invalid JSON) stops the app at startup with the
+  entry named in the error. Routes are resolved by reflection once at startup, not per request.
+- Rebuild after editing: the file is embedded, not read at runtime.
 
 ## Generated project reference
 
@@ -248,7 +272,7 @@ On `SIGINT` or `SIGTERM` the server stops accepting requests and waits up to 10 
 
 These are gaps in what the generator produces today; see [ROADMAP.md](ROADMAP.md).
 
-- **No schema creation.** The generated app never calls `AutoMigrate`; create tables yourself or use migrations.
+- **Schema by `AutoMigrate` only.** Tables are created at startup; there are no versioned migrations, so use a migration tool for production schema changes.
 - **No auth endpoints.** `utils/jwt.go` and `utils/password.go` exist, and `service/auth.go` is an empty stub.
   The default `User` service stores the password exactly as received; hash it with `utils.HashPassword`.
 - **`.env` is not loaded**, and `APP_LOG_LEVEL` is read into the config but not applied to the logger.

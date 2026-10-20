@@ -32,7 +32,7 @@ func (g *Generator) GenerateModelFiles(projectConfig config.ProjectConfig, model
 	}
 
 	file := naming.Snake(name)
-	paths := struct{ model, repo, service, handler, handlerTest, repoTest, serviceTest, main, routes string }{
+	paths := struct{ model, repo, service, handler, handlerTest, repoTest, serviceTest, main, routes, routesJSON string }{
 		model:       filepath.Join(baseDir, "model", file+".go"),
 		repo:        filepath.Join(baseDir, "repository", file+".go"),
 		service:     filepath.Join(baseDir, "service", file+".go"),
@@ -42,6 +42,7 @@ func (g *Generator) GenerateModelFiles(projectConfig config.ProjectConfig, model
 		serviceTest: filepath.Join(baseDir, "service", file+"_test.go"),
 		main:        filepath.Join(baseDir, "main.go"),
 		routes:      filepath.Join(baseDir, "transport/http/routes/routes.go"),
+		routesJSON:  filepath.Join(baseDir, "transport/http/routes/routes.json"),
 	}
 
 	created := []string{paths.model}
@@ -64,7 +65,7 @@ func (g *Generator) GenerateModelFiles(projectConfig config.ProjectConfig, model
 		}
 	}
 
-	return atomically([]string{paths.main, paths.routes}, created, func() error {
+	return atomically([]string{paths.main, paths.routes, paths.routesJSON}, created, func() error {
 		data := map[string]interface{}{"Config": projectConfig, "Model": model}
 
 		if err := g.GenerateFromSource(paths.model, "core/model.go.tmpl", model); err != nil {
@@ -94,17 +95,23 @@ func (g *Generator) GenerateModelFiles(projectConfig config.ProjectConfig, model
 				return err
 			}
 		}
-		return wireModel(projectConfig.ModuleName, name, model, paths.main, paths.routes)
+		return wireModel(projectConfig.ModuleName, name, model, paths.main, paths.routes, paths.routesJSON)
 	})
 }
 
 // wireModel registers the generated repository, service and handler in main.go
-// and the HTTP routes in routes.go.
-func wireModel(moduleName, name string, model config.ModelConfig, mainPath, routesPath string) error {
+// and the HTTP routes in routes.json.
+func wireModel(moduleName, name string, model config.ModelConfig, mainPath, routesPath, routesJSONPath string) error {
 	camel := naming.Camel(name)
 	plural := naming.Plural(name)
 
 	if model.HasRepo {
+		if err := utils.AddImport(mainPath, moduleName+"/model"); err != nil {
+			return err
+		}
+		if err := utils.InjectCodeAST(mainPath, "// [MIGRATE]", migrateStmt("model."+name, name)); err != nil {
+			return err
+		}
 		if err := utils.AddImport(mainPath, moduleName+"/repository"); err != nil {
 			return err
 		}
@@ -147,14 +154,15 @@ func wireModel(moduleName, name string, model config.ModelConfig, mainPath, rout
 	if err := utils.AddStructField(routesPath, "Router", name+"Handler", "*handler."+name+"Handler", ""); err != nil {
 		return err
 	}
-	group := camel + "Routes"
-	routes := fmt.Sprintf(`%[1]s := api.Group("/%[2]s")
-	%[1]s.POST("", r.%[3]sHandler.Create%[3]s)
-	%[1]s.GET("", r.%[3]sHandler.GetAll%[4]s)
-	%[1]s.GET("/:id", r.%[3]sHandler.Get%[3]s)
-	%[1]s.PUT("/:id", r.%[3]sHandler.Update%[3]s)
-	%[1]s.DELETE("/:id", r.%[3]sHandler.Delete%[3]s)`, group, naming.Kebab(plural), name, plural)
-	return utils.InjectCodeAST(routesPath, "// [ROUTES-INIT]", routes)
+	field := name + "Handler"
+	base := "/" + naming.Kebab(plural)
+	return utils.AddRoutes(routesJSONPath, []utils.Route{
+		{Method: "POST", Path: base, Handler: field + ".Create" + name},
+		{Method: "GET", Path: base, Handler: field + ".GetAll" + plural},
+		{Method: "GET", Path: base + "/:id", Handler: field + ".Get" + name},
+		{Method: "PUT", Path: base + "/:id", Handler: field + ".Update" + name},
+		{Method: "DELETE", Path: base + "/:id", Handler: field + ".Delete" + name},
+	})
 }
 
 // checkRouterField fails when routes.go already registers a handler under the
@@ -168,4 +176,12 @@ func (g *Generator) checkRouterField(routesPath, field string) error {
 		return fmt.Errorf("a handler named %s is already registered in %s (use --force to wire it again)", field, routesPath)
 	}
 	return nil
+}
+
+// migrateStmt returns the main.go statement that creates the table for a model
+// type such as "model.Product" or "order.Order".
+func migrateStmt(typ, label string) string {
+	return fmt.Sprintf(`if err := db.AutoMigrate(&%s{}); err != nil {
+		log.Fatal().Err(err).Msg("Failed to migrate %s")
+	}`, typ, label)
 }

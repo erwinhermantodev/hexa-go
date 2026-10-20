@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"go/format"
 	"go/parser"
 	"go/token"
 	"os"
@@ -181,17 +182,18 @@ func TestNamingInGeneratedCode(t *testing.T) {
 		}
 	}
 
-	routes := readFile(t, filepath.Join(root, "transport/http/routes/routes.go"))
+	routes := readFile(t, filepath.Join(root, "transport/http/routes/routes.json"))
 	for _, want := range []string{
-		`api.Group("/order-items")`, `api.Group("/categories")`, `api.Group("/blog-posts")`,
-		"r.OrderItemHandler.GetAllOrderItems", "r.CategoryHandler.GetAllCategories",
+		`"/order-items"`, `"/categories/:id"`, `"/blog-posts"`,
+		`"OrderItemHandler.GetAllOrderItems"`, `"CategoryHandler.GetAllCategories"`, `"BlogPostHandler.GetByID"`,
 	} {
 		if !strings.Contains(routes, want) {
-			t.Errorf("routes.go missing %q", want)
+			t.Errorf("routes.json missing %q", want)
 		}
 	}
 	main := readFile(t, filepath.Join(root, "main.go"))
-	for _, want := range []string{"orderItemRepo := repository.NewOrderItemRepository(db)", "notificationService := service.NewNotificationService()"} {
+	for _, want := range []string{"orderItemRepo := repository.NewOrderItemRepository(db)", "notificationService := service.NewNotificationService()",
+		"db.AutoMigrate(&model.OrderItem{})", "db.AutoMigrate(&blogpost.BlogPost{})"} {
 		if !strings.Contains(main, want) {
 			t.Errorf("main.go missing %q", want)
 		}
@@ -234,10 +236,9 @@ func TestFailedGenerationRollsBack(t *testing.T) {
 	root := generateSample(t, true)
 	cfg := config.ProjectConfig{Name: root, ModuleName: "example.com/demo"}
 
-	// Break routes.go so wiring fails after the files were already written.
-	routesPath := filepath.Join(root, "transport/http/routes/routes.go")
-	routes := readFile(t, routesPath)
-	broken := strings.Replace(routes, "// [ROUTES-INIT]", "", 1)
+	// Break routes.json so wiring fails after the files were already written.
+	routesPath := filepath.Join(root, "transport/http/routes/routes.json")
+	broken := "{ not json"
 	if err := os.WriteFile(routesPath, []byte(broken), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +259,7 @@ func TestFailedGenerationRollsBack(t *testing.T) {
 		t.Error("main.go was not restored after a failed generation")
 	}
 	if got := readFile(t, routesPath); got != broken {
-		t.Error("routes.go was not restored after a failed generation")
+		t.Error("routes.json was not restored after a failed generation")
 	}
 }
 
@@ -307,5 +308,25 @@ func TestCreateProjectCleansUpOnFailure(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "keep.txt")); err != nil {
 		t.Error("existing directory content was removed")
+	}
+}
+
+func TestGeneratedGoFilesAreGofmtClean(t *testing.T) {
+	root := generateSample(t, false)
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() || filepath.Ext(path) != ".go" {
+			return err
+		}
+		src := readFile(t, path)
+		out, ferr := format.Source([]byte(src))
+		if ferr != nil {
+			t.Errorf("%s: %v", path, ferr)
+		} else if string(out) != src {
+			t.Errorf("%s is not gofmt-formatted", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

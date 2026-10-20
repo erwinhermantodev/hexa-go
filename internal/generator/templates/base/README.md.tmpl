@@ -21,8 +21,8 @@ Configuration lives in `configs/config.yaml` and can be overridden with environm
 `.env.example` lists the variables but is **not loaded automatically**; export them in your shell or use
 `docker-compose`.
 
-> The generated code does not create database tables. Add `db.AutoMigrate(...)` in `main.go` for your models, or
-> manage the schema with [golang-migrate](https://github.com/golang-migrate/migrate) (`make migrate-up`).
+> Tables for generated models and modules are created at startup with `db.AutoMigrate(...)` in `main.go`. For
+> production schemas you may prefer [golang-migrate](https://github.com/golang-migrate/migrate) (`make migrate-up`).
 
 ## Project layout
 
@@ -34,7 +34,8 @@ model/                           entities plus request/response types
 repository/                      data access (GORM), one interface per model
 service/                         business logic
 transport/http/handler/          Echo handlers
-transport/http/routes/routes.go  route table, including /swagger and /api/v1/health
+transport/http/routes/routes.go  route loader, including /swagger and /api/v1/health
+transport/http/routes/routes.json  route table (method, path, handler); rebuild after editing
 transport/grpc/                  gRPC server skeleton (not started by main.go yet)
 utils/                           config, database, JWT, password, validator, response helpers
 internal/modules/                co-located modules created with `hexa-go add module`

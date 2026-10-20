@@ -1,7 +1,9 @@
 package generator
 
 import (
+	"bytes"
 	"fmt"
+	"go/format"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -89,13 +91,18 @@ func (g *Generator) CreateFileFromTemplate(filePath, tmplContent string, data in
 		return err
 	}
 
-	file, err := os.Create(filePath)
-	if err != nil {
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
 		return err
 	}
-	defer file.Close()
-
-	return tmpl.Execute(file, data)
+	out := buf.Bytes()
+	if filepath.Ext(filePath) == ".go" {
+		out, err = format.Source(out)
+		if err != nil {
+			return fmt.Errorf("formatting %s: %w", filePath, err)
+		}
+	}
+	return os.WriteFile(filePath, out, 0644)
 }
 
 // InjectCode adds code to an existing file before a marker
